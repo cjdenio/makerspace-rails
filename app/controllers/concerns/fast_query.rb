@@ -48,9 +48,9 @@ module FastQuery
 
       # Search if needed. Raises error if search doesnt exist on class
       unless query_criteria[:search].nil? || query_criteria[:search].empty?
-        query = current_query.klass.search(query_criteria[:search], current_query)
+        return current_query.klass.search(query_criteria[:search], current_query)
       else
-        current_query.order_by(sort_by => order)
+        return current_query.order_by(sort_by => order)
       end
     end
 

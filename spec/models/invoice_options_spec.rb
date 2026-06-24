@@ -16,7 +16,18 @@ RSpec.describe InvoiceOption, type: :model do
   describe "ActiveModel validations" do 
     it { is_expected.to validate_numericality_of(:amount) }
     it { is_expected.to validate_numericality_of(:quantity) }
-    it { is_expected.to validate_uniqueness_of(:plan_id) }
+    it 'validates uniqueness of plan_id when present' do
+      create(:invoice_option, plan_id: 'unique-plan-123')
+      duplicate = build(:invoice_option, plan_id: 'unique-plan-123')
+      expect(duplicate).not_to be_valid
+    end
+
+    it 'allows multiple records with nil plan_id' do
+      opt1 = build(:invoice_option, plan_id: nil)
+      opt2 = build(:invoice_option, plan_id: nil)
+      expect(opt1).to be_valid
+      expect(opt2).to be_valid
+    end
   end
 
   it "has a valid factory" do

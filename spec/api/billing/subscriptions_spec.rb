@@ -20,6 +20,7 @@ describe 'Billing::Subscriptions API', type: :request do
     get 'Gets a subscription' do
       tags 'Subscriptions'
       operationId "getSubscription"
+      consumes 'application/json'
       parameter name: :id, in: :path, type: :string
 
       response '200', 'subscription found' do
@@ -59,17 +60,9 @@ describe 'Billing::Subscriptions API', type: :request do
     put "Update a subscription" do
       tags 'Subscriptions'
       operationId "updateSubscription"
+      consumes 'application/json'
       parameter name: :id, in: :path, type: :string
       parameter name: :updateSubscriptionDetails, in: :body, schema: {
-        title: :updateSubscriptionDetails,
-        type: :object,
-        properties: {
-          paymentMethodToken: { type: :string }
-        },
-        required: [:paymentMethodToken]
-      }, required: true
-
-      request_body_json schema: {
         title: :updateSubscriptionDetails,
         type: :object,
         properties: {

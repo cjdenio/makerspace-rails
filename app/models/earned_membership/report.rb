@@ -9,7 +9,7 @@ class EarnedMembership::Report
 
   search_in :report_search
 
-  field :date, type: Time, default: Time.now
+  field :date, type: Time, default: -> { Time.now }
 
   accepts_nested_attributes_for :report_requirements, reject_if: :all_blank, allow_destroy: true
 

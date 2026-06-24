@@ -1,4 +1,4 @@
-require_relative("../../lib/error/devise_failure")
+
 
 # Use this hook to configure devise mailer, warden hooks and so forth.
 # Many of these configuration options can be set straight in your model.
@@ -28,11 +28,11 @@ Devise.setup do |config|
   # Configure the e-mail address which will be shown in Devise::Mailer,
   # note that it will be overwritten if you use your own mailer class
   # with default "from" parameter.
-  config.mailer_sender = 'contact@manchestermakerspace.org'
+  config.mailer_sender = ENV.fetch('SMTP_FROM', 'contact@manchestermakerspace.org')
   # config.secret_key = 'bac9f739b45c23a7b3b6bdbb897b2b48249fb98e6b8d437d0fedff898a5d57f7f90add22f22b3a7e10155c296c98641774f5a6587595dd4a16363ab99709e70e'
 
   # Configure the class responsible to send e-mails.
-  # config.mailer = 'Devise::Mailer'
+  config.mailer = 'DeviseMailer'
 
   # Configure the parent class responsible to send e-mails.
   # config.parent_mailer = 'ActionMailer::Base'
@@ -276,7 +276,7 @@ Devise.setup do |config|
   # end
 
   config.warden do |manager|
-    manager.failure_app = DeviseFailure
+    manager.failure_app = Error::DeviseFailure
   end
 
   # ==> Mountable engine configurations

@@ -18,6 +18,17 @@ class Admin::Billing::TransactionsController < Admin::BillingController
 
   def destroy
     ::BraintreeService::Transaction.refund(@gateway, params[:id])
+
+    ::Service::AuditLogger.log(
+      log_type:       'member',
+      event_type:     'transaction_refunded',
+      resource_type:  'Transaction',
+      resource_id:    current_member.id,
+      actor:          current_member,
+      after_snapshot: { transaction_id: params[:id] },
+      slack_channel:  ::Service::SlackConnector.logs_channel
+    )
+
     render json: {}, status: 204 and return
   end
 

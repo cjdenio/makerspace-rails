@@ -89,7 +89,7 @@ RSpec.describe BraintreeService::Subscription, type: :model do
 
     describe "#create" do
       after(:each) do 
-        Redis.current.flushall
+        REDIS.flushall
       end
 
       it "creates a subscription" do

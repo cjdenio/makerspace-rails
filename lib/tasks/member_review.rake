@@ -34,6 +34,19 @@ task :member_review => :environment do
       @no_member_contract = Service::Analytics::Members.query_no_member_contract()
       @no_rental_contract = Member.where(:id.in => Service::Analytics::Rentals.query_no_rental_contract().pluck(:member_id))
 
+      # Members with active rentals whose membership has lapsed.
+      # Checks BOTH expirationTime and status — they can get out of sync:
+      # - expirationTime can be past while status is still activeMember (no auto-transition)
+      # - status can be nonMember while expirationTime is in the future (early manual revoke)
+      # - expirationTime can be nil (member never paid)
+      # Using either field alone misses cases — both are required.
+      now_ms = Time.now.to_i * 1000
+      @expired_with_rentals = Rental.where(:status.in => ["active", "vacating"]).map(&:member).compact.select do |member|
+        member.expirationTime.nil? ||
+        member.expirationTime < now_ms ||
+        member.status != "activeMember"
+      end.uniq
+
       # Helpers
       def send_report(member_list, management_message, slack_lambda)
         build_management_messages(management_message, member_list)
@@ -156,6 +169,38 @@ task :member_review => :environment do
       notify_missing_contracts(@no_member_contract, "Member Contract") if @no_member_contract.length != 0
       notify_missing_contracts(@no_rental_contract, "Rental Agreement") if @no_rental_contract.length != 0
       notify_paypal_message() if @paypal_members.length != 0
+
+      # Notify admins and members of expired memberships with active rentals
+      if @expired_with_rentals.length > 0
+        add_context("Expired members with active rentals", @expired_with_rentals)
+        rental_messages = @expired_with_rentals.map do |member|
+          rentals = Rental.where(member_id: member.id, :status.in => ["active", "vacating"])
+          rental_numbers = rentals.map(&:number).join(", ")
+          has_rental_sub = rentals.any? { |r| r.subscription_id.present? }
+          sub_flag = has_rental_sub ? " _(rental sub still active — billing!)_" : ""
+          "<#{@base_url}/members/#{member.id}|#{member.fullname}> — Rentals: #{rental_numbers}#{sub_flag}"
+        end
+        @management_messages.push({
+          "type": "section",
+          "text": { "type": "mrkdwn", "text": rental_messages.join("\n") }
+        })
+
+        # Also notify each member directly so they know to renew
+        @expired_with_rentals.each do |member|
+          slack_user = SlackUser.find_by(member_id: member.id)
+          next unless slack_user
+
+          rentals = Rental.where(member_id: member.id, :status.in => ["active", "vacating"])
+          rental_numbers = rentals.map { |r| "##{r.number}" }.join(", ")
+
+          ::Service::SlackConnector.send_slack_message(
+            "Hi #{member.firstname}, your membership has expired but you still have an active rental (#{rental_numbers}). " \
+            "You must renew your membership to keep your rental in good standing. " \
+            "Please <#{@base_url}/members/#{member.id}|log in and renew> as soon as possible.",
+            slack_user.slack_id
+          )
+        end
+      end
 
       # Send management their report
       ::Service::SlackConnector.send_slack_message(@management_messages, ::Service::SlackConnector.members_relations_channel)

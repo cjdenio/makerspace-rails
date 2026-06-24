@@ -4,11 +4,11 @@ RSpec.configure do |config|
   # Specify a root folder where Swagger JSON files are generated
   # NOTE: If you're using the rswag-api to serve API descriptions, you'll need
   # to ensure that it's configured to serve Swagger from the same folder
-  config.swagger_root = Rails.root.to_s + '/swagger'
+  config.openapi_root = Rails.root.to_s + '/swagger'
   config.include Devise::Test::IntegrationHelpers, type: :request
   # Define one or more Swagger documents and provide global metadata for each one
-  # When you run the 'rswag:specs:to_swagger' rake task, the complete Swagger will
-  # be generated at the provided relative path under swagger_root
+  # When you run the 'rswag:specs:to_openapi' rake task, the complete OpenAPI spec
+  # will be generated at the provided relative path under openapi_root
   # By default, the operations defined in spec files are added to the first
   # document below. You can override this behavior by adding a swagger_doc tag to the
   # the root example_group in your specs, e.g. describe '...', swagger_doc: 'v2/swagger.json'
@@ -282,9 +282,9 @@ RSpec.configure do |config|
         notes: { type: :string, 'x-nullable': true },
       },
       required: [
-        :firstname, 
-        :lastname, 
-        :email, 
+        :firstname,
+        :lastname,
+        :email,
       ]
     },
     NewMember: {
@@ -689,16 +689,16 @@ RSpec.configure do |config|
   }
 
 
-  config.swagger_docs = {
+  config.openapi_specs = {
     'v1/swagger.json' => {
       openapi: '3.0.3',
       info: {
         title: 'Makerspace Server V2',
         version: 'v2',
       },
-      basePath: '/api',
-      consumes: ['application/json'],
-      produces: ['application/json', 'text/html'],
+      servers: [
+        { url: '/api', description: 'API base path' }
+      ],
       components: {
         schemas: {
           MemberStatus: {
@@ -707,7 +707,7 @@ RSpec.configure do |config|
           },
           MemberRole: {
             type: :string,
-            enum: ["admin", "member"],
+            enum: ["admin", "resource_manager", "member"],
           },
           PayPalAccountSummary: {
             type: :object,

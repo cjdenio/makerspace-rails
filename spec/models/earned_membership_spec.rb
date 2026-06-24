@@ -45,6 +45,7 @@ RSpec.describe EarnedMembership, type: :model do
     it "validates one membership per member" do
       membership = create(:earned_membership)
       invalid_membership = build(:earned_membership, member: membership.member)
+      allow(invalid_membership).to receive(:requirements_exist)
       expect(invalid_membership.valid?).to be(false)
       invalid_membership.save
       expect(invalid_membership.persisted?).to be(false)
@@ -58,6 +59,7 @@ RSpec.describe EarnedMembership, type: :model do
     it "validates member for membership isn't on subscription" do
       subscription_member = create(:member, subscription: true)
       membership = build(:earned_membership, member: subscription_member)
+      allow(membership).to receive(:requirements_exist)
       expect(membership.valid?).to be(false)
       membership.save
       expect(membership.persisted?).to be(false)
@@ -73,6 +75,7 @@ RSpec.describe EarnedMembership, type: :model do
 
     it "validates requirements and member exists" do
       membership = build(:earned_membership, member: nil)
+      allow(membership).to receive(:requirements_exist)
       expect(membership.valid?).to be(false)
       membership.save
       expect(membership.persisted?).to be(false)
@@ -103,16 +106,18 @@ RSpec.describe EarnedMembership, type: :model do
 
     it "renews member on create if member benefits" do
       exp_member = create(:member, expirationTime: (Time.now - 2.months).to_i * 1000)
-      membership = build(:earned_membership,
-        member: exp_member)
+      membership = build(:earned_membership, member: exp_member)
+      allow(membership).to receive(:requirements_exist)
+      allow(membership).to receive(:get_shortest_term_end_time).and_return((Time.now + 1.year).to_i * 1000)
       expect(membership).to receive(:renew_member)
-      membership.save
+      membership.save!
 
       other_member = create(:member, expirationTime: (Time.now + 2.months).to_i * 1000)
-      other_membership = build(:earned_membership,
-        member: other_member)
+      other_membership = build(:earned_membership, member: other_member)
+      allow(other_membership).to receive(:requirements_exist)
+      allow(other_membership).to receive(:get_shortest_term_end_time).and_return((Time.now + 1.month).to_i * 1000)
       expect(other_membership).not_to receive(:renew_member)
-      other_membership.save
+      other_membership.save!
     end
   end
 end

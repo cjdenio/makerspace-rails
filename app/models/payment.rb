@@ -3,7 +3,7 @@ class Payment
   include ActiveModel::Serializers::JSON
 
   belongs_to :member, optional: true
-  after_initialize :find_member, on: :create
+  after_initialize :find_member
 
   field :product
   field :firstname
@@ -39,11 +39,12 @@ class Payment
 
   def find_member
     unless !!self.member
-      self.member = Member.search(self.payer_email).first unless self.payer_email.nil?
-      self.member ||= Member.search(self.lastname).first unless self.lastname.nil?
-      self.member ||= Member.search(self.firstname).first unless self.firstname.nil?
+      # Use direct field queries instead of Member.search (which requires Atlas Search index)
+      self.member = Member.find_by(email: self.payer_email.to_s.downcase) unless self.payer_email.nil?
+      self.member ||= Member.where(lastname: /\A#{Regexp.escape(self.lastname)}\z/i).first unless self.lastname.nil?
+      self.member ||= Member.where(firstname: /\A#{Regexp.escape(self.firstname)}\z/i).first unless self.firstname.nil?
       if !self.member && self.payer_email then
-        payments = Payment.where(member: !nil, payer_email: self.payer_email).order_by(payment_date: :desc);
+        payments = Payment.where(member: !nil, payer_email: self.payer_email.to_s.downcase).order_by(payment_date: :desc);
         self.member = payments.first.member unless payments.empty?
       end
       self.save

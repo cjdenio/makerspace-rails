@@ -1,24 +1,18 @@
-development: &default
+development:
   mode: sandbox
   client_id: EBWKjlELKMYqRNQ6sYvFo64FtaRLRR5BdHEESmha49TM
   client_secret: EO422dn3gQLgDbuwqTjzrFgFtaRLRR5BdHEESmha49TM
   sandbox_email_address: <%= ENV['PAYPAL_SANDBOX'] %>
 
-  # # with Proxy
-  # http_proxy: http://proxy-ipaddress:3129/
-  # # with CA File
-  # ssl_options:
-  #   ca_file: config/cacert.pem
-  # # Override Endpoint
-  # rest_endpoint: https://api.sandbox.paypal.com
 test:
-  <<: *default
+  mode: sandbox
+  client_id: EBWKjlELKMYqRNQ6sYvFo64FtaRLRR5BdHEESmha49TM
+  client_secret: EO422dn3gQLgDbuwqTjzrFgFtaRLRR5BdHEESmha49TM
+  sandbox_email_address: <%= ENV['PAYPAL_SANDBOX'] %>
+
 production:
   mode: live
   client_id: <%= ENV['PAYPAL_CLIENT_ID'] %>
   client_secret: <%= ENV['PAYPAL_SECRET'] %>
-  # Deliberately set ca_file to nil so the system's Cert Authority is used,
-  # instead of the bundled paypal.crt file which is out-of-date due to:
-  # https://www.paypal.com/va/smarthelp/article/discontinue-use-of-verisign-g5-root-certificates-ts2240
   ssl_options:
     ca_file: null

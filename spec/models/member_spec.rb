@@ -24,6 +24,31 @@ RSpec.describe Member, type: :model do
   describe "ActiveModel validations" do
     it { is_expected.to validate_presence_of(:firstname) }
     it { is_expected.to validate_presence_of(:lastname) }
+
+    describe "role validation" do
+      it "accepts 'admin' as a valid role" do
+        member = build(:member, :admin)
+        expect(member).to be_valid
+      end
+
+      it "accepts 'resource_manager' as a valid role" do
+        member = build(:member, :resource_manager)
+        expect(member).to be_valid
+      end
+
+      it "accepts 'member' as a valid role" do
+        member = build(:member)
+        expect(member.role).to eq('member')
+        expect(member).to be_valid
+      end
+
+      it "rejects an unknown role" do
+        member = build(:member)
+        member.role = 'superuser'
+        expect(member).not_to be_valid
+        expect(member.errors[:role]).not_to be_empty
+      end
+    end
     it { is_expected.to validate_uniqueness_of(:email) }
     it { is_expected.to have_many(:access_cards).as_inverse_of(:member) }
   end
@@ -160,11 +185,11 @@ RSpec.describe Member, type: :model do
     describe "on create" do
       it "schedules a slack and google drive invite" do
         member = build(:member)
-        expect_any_instance_of(Service::GoogleDrive).to receive(:invite_gdrive).with(member.email)
-        expect_any_instance_of(Service::SlackConnector).to receive(:invite_to_slack).with(
-          member.email, 
+        allow(MemberSubscriber).to receive(:send_google_invite).and_return(nil)
+        expect(MemberSubscriber).to receive(:invite_to_slack).with(
+          member.email,
           member.lastname,
-          member.firstname, 
+          member.firstname,
         )
         member.save!
       end
@@ -193,22 +218,24 @@ RSpec.describe Member, type: :model do
       end
 
       it "Reinvites to services if email changes" do
-        # Mock this publish so Slack tracking only applies to update and not create
-        allow(member).to receive(:publish_create)
         new_email = "foo_changed@test.com"
-        expect_any_instance_of(Service::GoogleDrive).to receive(:invite_gdrive).with(new_email)
-        expect_any_instance_of(Service::SlackConnector).to receive(:invite_to_slack).with(
-          new_email, 
-          member.lastname,
-          member.firstname, 
-        )
+        # Force member creation before setting expectations so the :create
+        # event's send_slack_invite call doesn't satisfy the expectation
+        member # evaluate let to trigger create
+        allow(MemberSubscriber).to receive(:send_google_invite).and_return(nil)
+        expect(MemberSubscriber).to receive(:send_slack_invite).and_call_original
+        allow(MemberSubscriber).to receive(:invite_to_slack).and_return(nil)
         member.update!({ email: new_email })
       end
 
       it "Updates billing if a customer" do 
+        allow(MemberSubscriber).to receive(:send_google_invite).and_return(nil)
+        allow(MemberSubscriber).to receive(:invite_to_slack).and_return(nil)
         customer = create(:member, customer_id: "foo")
-        allow_any_instance_of(Service::BraintreeGateway).to receive(:connect_gateway).and_return(gateway)
-        mock_customer_chain = double 
+        mock_customer_chain = double
+        # The subscriber's connect_gateway instance method delegates to
+        # ::Service::BraintreeGateway.connect_gateway — stub the class-level method
+        allow(Service::BraintreeGateway).to receive(:connect_gateway).and_return(gateway)
         expect(gateway).to receive(:customer).and_return(mock_customer_chain)
         expect(mock_customer_chain).to receive(:update).with(
           "foo", 
@@ -246,6 +273,87 @@ RSpec.describe Member, type: :model do
         member.destroy
         expect(Rental.all.length).to eq(0)
       end
+    end
+  end
+
+  describe "#send_renewal_slack_message" do
+    # Regression for a key-collision bug: enque_message's default uniquifier
+    # is derived only from the calling method name + Current.request_id.
+    # Both the member-DM and management-channel calls happen within this
+    # one method in the same request, so without distinct, explicit
+    # uniquifiers, the second REDIS.set silently overwrote the first,
+    # losing one of the two renewal notifications every time.
+    #
+    # NOTE: Current.request_id is only ever set by SetCurrentRequestDetails
+    # in real requests — in a plain model spec nothing sets it, so it stays
+    # nil for the whole suite run unless set explicitly here. Without an
+    # explicit, unique value per test, the wildcard lookup below would match
+    # every key in Redis (since nil.to_s + ".*" == ".*"), including leftover
+    # keys from any other test in the suite — exactly what caused this test
+    # to see 6 channels instead of 2 once other tests in the suite also
+    # enqueued messages with the same unset request_id.
+    around do |example|
+      Current.request_id = SecureRandom.uuid
+      example.run
+      REDIS.keys("#{Current.request_id}.*").each { |key| REDIS.del(key) }
+      Current.request_id = nil
+    end
+
+    it "queues both the member DM and management channel notification under distinct keys" do
+      member = create(:member)
+      slack_user = SlackUser.create!(member_id: member.id, slack_id: "U_TEST_MEMBER")
+
+      member.send_renewal_slack_message
+
+      enqueued = Service::SlackConnector.get_enqueued_messages("#{Current.request_id}.*")
+      channels = enqueued.values.map { |payload| JSON.parse(payload)["channel"] }
+
+      expect(channels).to include(slack_user.slack_id)
+      expect(channels).to include(Service::SlackConnector.members_relations_channel)
+      expect(channels.size).to eq(2)
+    end
+
+    it "queues only the management channel notification when the member has no SlackUser" do
+      member = create(:member)
+
+      member.send_renewal_slack_message
+
+      enqueued = Service::SlackConnector.get_enqueued_messages("#{Current.request_id}.*")
+      channels = enqueued.values.map { |payload| JSON.parse(payload)["channel"] }
+
+      expect(channels).to eq([Service::SlackConnector.members_relations_channel])
+    end
+  end
+
+  describe "#find_subscribed_resource" do
+    # Regression for the gap flagged on #92: once Group gained its own
+    # subscription_id (for household billing), find_subscribed_resource
+    # still only checked the member's own subscription_id and rentals —
+    # never the member's household group. A primary household member
+    # managing their own household_* subscription via self-service
+    # (Billing::SubscriptionsController#verify_own_subscription) would
+    # get a 404 without this.
+    it "finds the member's household group subscription when the member's own and rental subscriptions don't match" do
+      member = create(:member)
+      group = create(:group, member: member, groupRep: member.fullname, groupName: member.id.to_s)
+      group.update!(subscription_id: "household_sub_123")
+      member.update!(groupName: group.groupName)
+
+      expect(member.find_subscribed_resource("household_sub_123")).to eq(group)
+    end
+
+    it "still prefers the member's own subscription over the group's when both are present" do
+      member = create(:member, subscription_id: "member_sub_123")
+      group = create(:group, member: member, groupRep: member.fullname, groupName: member.id.to_s)
+      group.update!(subscription_id: "household_sub_123")
+      member.update!(groupName: group.groupName)
+
+      expect(member.find_subscribed_resource("member_sub_123")).to eq(member)
+    end
+
+    it "returns nil when neither the member, rentals, nor group match" do
+      member = create(:member)
+      expect(member.find_subscribed_resource("nonexistent_sub")).to be_nil
     end
   end
 end

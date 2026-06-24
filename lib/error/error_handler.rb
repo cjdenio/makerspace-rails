@@ -6,16 +6,17 @@ module Error
     def self.included(clazz)
       include ::Service::SlackConnector
       clazz.class_eval do
-        rescue_from StandardError do |e|
-          if Rails.env.production?
-            message = "Unhandled Error: #{e.message} #{e.backtrace}"
-            slack_alert(:interal_server_error, 500, message)
-            respond(:interal_server_error, 500, "Internal Server Error")
-          else
-            raise e
-          end
-        end
+        # rescue_from StandardError do |e|
+        #   if Rails.env.production?
+        #     message = "Unhandled Error: #{e.message} #{e.backtrace}"
+        #     slack_alert(:interal_server_error, 500, message)
+        #     respond(:interal_server_error, 500, "Internal Server Error")
+        #   else
+        #     raise e
+        #   end
+        # end
         rescue_from ::Mongoid::Errors::MongoidError do |e|
+          honeybadger_notify(e)
           slack_alert(:interal_server_error, 500, e.summary || "Internal Server Error")
           respond(:interal_server_error, 500, e.summary || "Internal Server Error")
         end
@@ -39,6 +40,7 @@ module Error
           respond(:not_found, 404, "Braintree resource not found")
         end
         rescue_from CustomError do |e|
+          honeybadger_notify(e) if e.error.to_i >= 500
           slack_alert(e.status, e.error, e.message)
           respond(e.status, e.error, e.message)
         end
@@ -50,6 +52,27 @@ module Error
     def respond(_error, _status, _message)
       json = Error::Helpers::Render.json(_error, _status, _message)
       render json: json, status: _status and return
+    end
+
+    # Sends the exception to Honeybadger with request context.
+    # Only called for 5xx errors — 4xx are expected/noisy and don't belong there.
+    # Jobs, models, and FirebaseAuthController notify Honeybadger independently
+    # so this only covers controller-layer errors caught by rescue_from.
+    def honeybadger_notify(exception)
+      Honeybadger.notify(
+        exception,
+        context: {
+          user:       self.try(:current_member)&.id&.to_s,
+          user_email: self.try(:current_member)&.email,
+          url:        Current.url,
+          method:     Current.method,
+          params:     Current.params,
+          request_id: Current.request_id,
+        }
+      )
+    rescue => notify_err
+      # Never let Honeybadger itself break the error response
+      Rails.logger.error("[ErrorHandler] Honeybadger.notify failed: #{notify_err.message}")
     end
 
     def slack_alert(_error, _status, _message)

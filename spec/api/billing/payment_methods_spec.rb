@@ -16,6 +16,7 @@ describe 'Billing::PaymentMethods API', type: :request do
     get 'Initiate new payment method creation' do
       tags 'PaymentMethods'
       operationId "getNewPaymentMethod"
+      consumes 'application/json'
       response '200', 'Token created' do
         before do
           sign_in customer
@@ -44,6 +45,7 @@ describe 'Billing::PaymentMethods API', type: :request do
     get 'Gets a list of payment_methods' do
       tags 'PaymentMethods'
       operationId "listPaymentMethods"
+      consumes 'application/json'
 
       response '200', 'payment_methods found' do
         let(:invoice) { create(:invoice, member: customer)}
@@ -73,17 +75,8 @@ describe 'Billing::PaymentMethods API', type: :request do
     post 'Create an payment_method' do
       tags 'PaymentMethods'
       operationId "createPaymentMethod"
+      consumes 'application/json'
       parameter name: :createPaymentMethodDetails, in: :body, schema: {
-        title: :createPaymentMethodDetails,
-        type: :object,
-        properties: {
-          paymentMethodNonce: { type: :string },
-          makeDefault: { type: :boolean }
-        },
-        required: [:paymentMethodNonce]
-      }, required: true
-
-      request_body_json schema: {
         title: :createPaymentMethodDetails,
         type: :object,
         properties: {

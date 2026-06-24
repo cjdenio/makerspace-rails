@@ -9,6 +9,7 @@ describe 'Admin::Invoices API', type: :request do
     get 'Gets a list of invoices' do
       tags 'Invoices'
       operationId "adminListInvoices"
+      consumes 'application/json'
       parameter name: :pageNum, in: :query, type: :number, required: false
       parameter name: :orderBy, in: :query, type: :string, required: false
       parameter name: :order, in: :query, type: :string, required: false
@@ -47,6 +48,7 @@ describe 'Admin::Invoices API', type: :request do
     post 'Creates an invoice' do
       tags 'Invoices'
       operationId "adminCreateInvoices"
+      consumes 'application/json'
       parameter name: :createInvoiceDetails, in: :body, schema: {
         title: :createInvoiceDetails, 
         type: :object,
@@ -59,18 +61,6 @@ describe 'Admin::Invoices API', type: :request do
         required: [:id, :memberId, :resourceId]
       }, required: true
       
-      request_body_json schema: {
-        title: :createInvoiceDetails, 
-        type: :object,
-        properties: {
-          id: { type: :string },
-          memberId: { type: :string },
-          resourceId: { type: :string },
-          discountId: { type: :string },
-        },
-        required: [:id, :memberId, :resourceId]
-      }, required: true
-
       response '200', 'invoice created' do
         before { sign_in admin }
 
@@ -144,17 +134,10 @@ describe 'Admin::Invoices API', type: :request do
     put 'Updates an invoice' do
       tags 'Invoices'
       operationId "adminUpdateInvoice"
+      consumes 'application/json'
       parameter name: :id, in: :path, type: :string
 
       parameter name: :updateInvoiceDetails, in: :body, schema: {
-        title: :updateInvoiceDetails,
-        type: :object,
-        properties: {
-          settled: { type: :boolean }
-        }
-      }, required: true
-
-      request_body_json schema: {
         title: :updateInvoiceDetails,
         type: :object,
         properties: {
