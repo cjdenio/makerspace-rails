@@ -20,6 +20,7 @@ class Card
     nonMember: "nonMember",
     lost: "lost",
     stolen: "stolen",
+    suspended: "suspended",
     expired: "expired"
   }
 

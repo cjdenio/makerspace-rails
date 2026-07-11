@@ -38,7 +38,9 @@ class EarnedMembership
 
   private
   def get_shortest_term_end_time
-    min_req_term = requirements.min_by(&:term_length).current_term
+    min_req = requirements.min_by(&:term_length)
+    return nil if min_req.nil?
+    min_req_term = min_req.current_term
     min_req_term && min_req_term.end_date.to_i * 1000
   end
 
@@ -59,7 +61,7 @@ class EarnedMembership
   def renew_member
     self.member.update(expirationTime: get_shortest_term_end_time)
     time = self.member.pretty_time.strftime("%m/%d/%Y")
-    enque_message("#{self.member.fullname} earned membership extended to #{time}")
+    ::Service::SlackConnector.send_slack_message("#{self.member.fullname} earned membership extended to #{time}")
   end
 
   def requirements_exist

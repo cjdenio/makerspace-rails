@@ -19,6 +19,28 @@ RSpec.describe Rental, type: :model do
     expect(build(:rental)).to be_valid
   end
 
+  it "sanitizes untyped string fields using the runtime value without persisting HTML entities" do
+    rental = build(:rental, number: "<b>R-1</b><script>alert(1)</script>", description: "R&D storage: 2 < 3")
+
+    rental.valid?
+
+    expect(rental.number).to eq("R-1alert(1)")
+    expect(rental.description).to eq("R&D storage: 2 < 3")
+  end
+
+  describe "renewal Slack notifications" do
+    it "queues renewal messages instead of synchronously posting to Slack" do
+      rental = create(:rental)
+      SlackUser.create!(member: rental.member, slack_id: "U123")
+
+      expect(Service::SlackConnector).not_to receive(:send_slack_message)
+      expect(Service::SlackConnector).to receive(:enque_message).with(anything, "U123", anything)
+      expect(Service::SlackConnector).to receive(:enque_message).with(anything, Service::SlackConnector.members_relations_channel, anything)
+
+      rental.send_renewal_slack_message
+    end
+  end
+
   describe "on destroy" do 
     it "cancels its subscription if subscription_id exists" do 
       rental = create(:rental, subscription_id: "124")

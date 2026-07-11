@@ -89,7 +89,7 @@ RSpec.describe BraintreeService::Subscription, type: :model do
 
     describe "#create" do
       after(:each) do 
-        Redis.current.flushall
+        REDIS.flushall
       end
 
       it "creates a subscription" do
@@ -231,6 +231,40 @@ RSpec.describe BraintreeService::Subscription, type: :model do
         member_subscription.send(:set_resource)
         expect(rental_subscription.member).to eq(member_2)
         expect(member_subscription.member).to eq(member)
+      end
+
+      it "falls back to stored member subscription_id when the Braintree ID is not parseable" do
+        legacy_subscription = build(:subscription, id: "legacy_member_subscription")
+        member.update!(subscription_id: legacy_subscription.id)
+
+        legacy_subscription.send(:set_resource)
+
+        expect(legacy_subscription.resource).to eq(member)
+        expect(legacy_subscription.member).to eq(member)
+      end
+
+      it "falls back to stored rental subscription_id when the Braintree ID is not parseable" do
+        legacy_subscription = build(:subscription, id: "legacy_rental_subscription")
+        rental.update!(subscription_id: legacy_subscription.id)
+
+        legacy_subscription.send(:set_resource)
+
+        expect(legacy_subscription.resource).to eq(rental)
+        expect(legacy_subscription.member).to eq(member_2)
+      end
+
+      it "falls back to stored household group subscription_id when the Braintree ID is not parseable" do
+        primary = create(:member)
+        create(:invoice, member: primary, resource_class: "member", resource_id: primary.id.to_s, plan_id: "household-membership-one-month-recurring")
+        group = create(:group, member: primary, groupRep: primary.fullname, groupName: primary.id.to_s)
+        group.update!(subscription_id: "legacy_household_subscription")
+        primary.update!(groupName: group.groupName)
+        legacy_subscription = build(:subscription, id: group.subscription_id)
+
+        legacy_subscription.send(:set_resource)
+
+        expect(legacy_subscription.resource).to eq(group)
+        expect(legacy_subscription.member).to eq(primary)
       end
     end
   end

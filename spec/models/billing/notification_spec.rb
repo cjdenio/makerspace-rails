@@ -172,7 +172,7 @@ RSpec.describe BraintreeService::Notification, type: :model do
       new_member.reload
       init_member_expiration = new_member.pretty_time
       allow(pd_transaction).to receive(:line_items).and_return([])
-      expect(BraintreeService::Notification).to receive(:enque_message).with(/failed with status/i)
+      expect(BraintreeService::Notification).to receive(:enque_message).with(/failed with status/i, anything, anything)
 
       BraintreeService::Notification.process_transaction(failed_transaction_notification)
       new_member.reload

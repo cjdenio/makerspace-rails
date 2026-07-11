@@ -12,11 +12,36 @@ class Billing::SubscriptionsController < BillingController
       payment_method_token: subscription_params[:payment_method_token]
     }
     subscription = ::BraintreeService::Subscription.update(@gateway, subscription_update)
+
+    ::Service::AuditLogger.log(
+      log_type:       'member',
+      event_type:     'subscription_updated',
+      resource_type:  'Subscription',
+      resource_id:    current_member.id,
+      actor:          current_member,
+      subject:        current_member,
+      after_snapshot: { subscription_id: params[:id],
+                        payment_method_token: subscription_params[:payment_method_token] },
+      slack_channel:  ::Service::SlackConnector.logs_channel
+    )
+
     render json: subscription, serializer: BraintreeService::SubscriptionSerializer, adapter: :attributes and return
   end
 
   def destroy
     result = ::BraintreeService::Subscription.cancel(@gateway, params[:id])
+
+    ::Service::AuditLogger.log(
+      log_type:       'member',
+      event_type:     'subscription_cancelled',
+      resource_type:  'Subscription',
+      resource_id:    current_member.id,
+      actor:          current_member,
+      subject:        current_member,
+      after_snapshot: { subscription_id: params[:id] },
+      slack_channel:  ::Service::SlackConnector.logs_channel
+    )
+
     render json: {}, status: 204 and return
   end
 

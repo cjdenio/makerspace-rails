@@ -1,4 +1,14 @@
 class Billing::PaymentMethodsController < BillingController
+  # Allow unauthenticated access to new — needed for self-registration payment step
+  # The client token is generated without a customer_id for unauthenticated requests.
+  # Also skip verify_billing_permission (added to BillingController via BillingGate):
+  # current_member is nil for this anonymous request, and BillingGate#verify_billing_permission
+  # calls current_member.is_allowed? with no nil-guard, which would raise NoMethodError
+  # instead of returning the anonymous client token — breaking self-registration entirely.
+  skip_before_action :authenticate_member!, only: [:new]
+  skip_before_action :authenticated?, only: [:new]
+  skip_before_action :verify_billing_permission, only: [:new]
+
   before_action :payment_method_params, only: [:create]
 
   def new
@@ -33,6 +43,16 @@ class Billing::PaymentMethodsController < BillingController
     # Parse Braintree result
     raise Error::Braintree::Result.new(result) unless result.success?
     payment_method = result.try(:payment_method) ? result.payment_method : result.customer.payment_methods.first
+
+    ::Service::AuditLogger.log(
+      log_type:       'member',
+      event_type:     'payment_method_added',
+      resource_type:  'PaymentMethod',
+      resource_id:    current_member.id,
+      actor:          current_member,
+      subject:        current_member,
+      after_snapshot: { token: payment_method.token, last_4: payment_method.try(:last_4) }
+    )
 
     render json: payment_method, serializer: BraintreeService::PaymentMethodSerializer, adapter: :attributes, status: 200 and return
   end
@@ -81,16 +101,38 @@ class Billing::PaymentMethodsController < BillingController
       Invoice.process_cancellation(invoice.id)
     end
 
+    ::Service::AuditLogger.log(
+      log_type:       'member',
+      event_type:     'payment_method_removed',
+      resource_type:  'PaymentMethod',
+      resource_id:    current_member.id,
+      actor:          current_member,
+      subject:        current_member,
+      after_snapshot: { token: payment_method.token,
+                        subscriptions_cancelled: sub_ids }
+    )
+
     render json: {}, status: 204 and return
   end
 
   private
+
   def payment_method_params
     params.require(:payment_method_nonce)
     params.permit(:payment_method_nonce, :make_default)
   end
 
   def generate_client_token
-    @gateway.client_token.generate
+    options = {}
+    # Only include customer_id if authenticated and member has one
+    begin
+      options[:customer_id] = current_member.customer_id if current_member&.customer_id.present?
+    rescue
+      # Unauthenticated — generate token without customer_id
+    end
+    @gateway.client_token.generate(options)
+  rescue Braintree::BraintreeError => e
+    Honeybadger.notify(e)
+    raise Error::InternalServerError.new("Failed to initialize payment form")
   end
 end

@@ -14,7 +14,7 @@ RSpec.describe SlackMessagesJob, type: :job do
   end
 
   after(:each) do 
-    Redis.current.flushall
+    REDIS.flushall
   end
 
   it "Dispatches slack messages from Redis cache by request_id" do
@@ -24,15 +24,15 @@ RSpec.describe SlackMessagesJob, type: :job do
 
   it "Removes enqueued messages when sent successfully" do
     SlackMessagesJob.perform_now(target_id)
-    expect(Redis.current.get("#{target_id}.method")).to be(nil)
-    expect(Redis.current.get("#{target_id}.method2")).to be(nil)
+    expect(REDIS.get("#{target_id}.method")).to be(nil)
+    expect(REDIS.get("#{target_id}.method2")).to be(nil)
   end
 
   it "Retains enqueued messages when sent failed" do 
     allow_any_instance_of(Service::SlackConnector).to receive(:send_slack_messages).and_throw("Error")
     SlackMessagesJob.perform_now(target_id)
-    expect(Redis.current.get("#{target_id}.method")).to be_truthy
-    expect(Redis.current.get("#{target_id}.method2")).to be_truthy
+    expect(REDIS.get("#{target_id}.method")).to be_truthy
+    expect(REDIS.get("#{target_id}.method2")).to be_truthy
   end
 
   it "Retries failed messages" do 
@@ -46,7 +46,7 @@ RSpec.describe SlackMessagesJob, type: :job do
     perform_enqueued_jobs do 
       SlackMessagesJob.perform_now(target_id) rescue nil
     end
-    expect(Redis.current.get("#{target_id}.method")).to be(nil)
-    expect(Redis.current.get("#{target_id}.method2")).to be(nil)
+    expect(REDIS.get("#{target_id}.method")).to be(nil)
+    expect(REDIS.get("#{target_id}.method2")).to be(nil)
   end
 end
