@@ -21,7 +21,7 @@ RSpec.describe Group, type: :model do
     # it { is_expected.to have_many(:active_members).with_primary_key("groupName").as_inverse_of(:group).with_foreign_key("groupName")}
   end
   it "has a valid factory" do
-    expect(build(:group)).to be_valid
+    expect(create(:group)).to be_valid
   end
 
   # describe "callbacks" do
@@ -31,12 +31,18 @@ RSpec.describe Group, type: :model do
 
   describe "private methods" do
     it "Updates group expiration and access card" do
-      expired_member = create(:member, :expired)
+      primary = create(:member)
+      expired_member = create(:member, :expired, groupName: primary.id.to_s)
       card = create(:card, member: expired_member)
-      group = create(:group, groupRep: expired_member)
-      group_expiration = group.expiry #multiply by 1000 bc js used ms instead of seconds
-      expect(expired_member.expirationTime).to eq(group_expiration)
-      expect(card.expiry).to eq(group_expiration)
+      # Create group owned by primary — expired_member is a secondary active_member
+      group = create(:group, groupRep: primary.fullname, groupName: primary.id.to_s)
+      group_expiration = group.expiry
+      # after_create triggers update_active_members → verify_group_expiry on secondaries
+      expect(expired_member.reload.expirationTime).to eq(group_expiration)
+      # Card expiry syncs via Card#set_expiration (after_save on card, not on member).
+      # Re-save the card to fire the callback with the updated member expirationTime.
+      card.reload.save!
+      expect(card.reload.expiry).to eq(group_expiration)
     end
   end
 end

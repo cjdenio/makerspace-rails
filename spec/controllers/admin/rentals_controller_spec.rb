@@ -44,7 +44,7 @@ RSpec.describe Admin::RentalsController, type: :controller do
 
       parsed_response = JSON.parse(response.body)
       expect(response).to have_http_status(200)
-      expect(response.content_type).to eq "application/json"
+      expect(response.media_type).to eq "application/json"
       expect(parsed_response.first['id']).to eq(rental2.id.to_s)
     end
   end
@@ -59,8 +59,8 @@ RSpec.describe Admin::RentalsController, type: :controller do
 
       it "assigns a newly created rental as @rental" do
         post :create, params: valid_attributes, format: :json
-        expect(assigns(:rental)).to be_a(Rental)
-        expect(assigns(:rental)).to be_persisted
+        expect(Rental.last).to be_a(Rental)
+        expect(Rental.last).to be_persisted
       end
 
       it "renders json of the created rental" do
@@ -68,7 +68,7 @@ RSpec.describe Admin::RentalsController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(Rental.last.id.to_s)
       end
     end
@@ -103,7 +103,7 @@ RSpec.describe Admin::RentalsController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(rental.id.as_json)
       end
 

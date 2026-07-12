@@ -19,10 +19,10 @@ class Billing::TransactionsController < BillingController
         invoice_option = InvoiceOption.find(transaction_params[:invoice_option_id])
         raise ::Mongoid::Errors::DocumentNotFound.new(InvoiceOption, { id: transaction_params[:invoice_option_id] }) if invoice_option.nil?
         raise ::Error::UnprocessableEntity.new("Cannot create transaction from rental invoice option") if invoice_option.resource_class == "rental"
-        if (transaction_params[:discount_id])
+        if transaction_params[:discount_id].present?
           discounts = ::BraintreeService::Discount.get_discounts(@gateway)
-          invoice_discount = discounts.find { |d| d.id == transaction_params[:discount_id]}
-          raise ::Error::NotFound.new() if invoice_discount.nil?
+          invoice_discount = discounts.find { |d| d.id == transaction_params[:discount_id] }
+          raise ::Error::UnprocessableEntity.new("Discount code \"#{transaction_params[:discount_id]}\" was not recognized. Please check the code and try again.") if invoice_discount.nil?
         end
         invoice = invoice_option.build_invoice(current_member.id, Time.now, current_member.id, invoice_discount)
       end
@@ -30,6 +30,18 @@ class Billing::TransactionsController < BillingController
       transaction = InvoiceHelper.pay_workflow(
         invoice.id,
         Proc.new { invoice.submit_for_settlement(@gateway, transaction_params[:payment_method_id]) }
+      )
+
+      ::Service::AuditLogger.log(
+        log_type:       'member',
+        event_type:     'transaction_created',
+        resource_type:  'Invoice',
+        resource_id:    invoice.id,
+        actor:          current_member,
+        subject:        invoice.member,
+        after_snapshot: { invoice_id: invoice.id.to_s, amount: invoice.amount,
+                          plan_id: invoice.plan_id, resource_class: invoice.resource_class },
+        slack_channel:  ::Service::SlackConnector.logs_channel
       )
 
       render json: transaction, serializer: BraintreeService::TransactionSerializer, adapter: :attributes, status: 200 and return
@@ -51,6 +63,18 @@ class Billing::TransactionsController < BillingController
 
       description = invoice.name || invoice.description
       invoice.request_refund
+
+      ::Service::AuditLogger.log(
+        log_type:       'member',
+        event_type:     'refund_requested',
+        resource_type:  'Invoice',
+        resource_id:    invoice.id,
+        actor:          current_member,
+        subject:        invoice.member,
+        after_snapshot: { transaction_id: transaction.id, amount: invoice.amount,
+                          description: description },
+        slack_channel:  ::Service::SlackConnector.logs_channel
+      )
 
       render json: {}, status: 204 and return
     end

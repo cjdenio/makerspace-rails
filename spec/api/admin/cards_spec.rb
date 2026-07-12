@@ -8,6 +8,7 @@ describe 'Admin::AccessCards API', type: :request do
     get 'Initiate new card creation' do 
       tags 'Cards'
       operationId "adminGetNewCard"
+      consumes 'application/json'
       response '200', 'Card intilized' do 
         before do 
           sign_in admin 
@@ -36,6 +37,7 @@ describe 'Admin::AccessCards API', type: :request do
     get 'Gets a list of members cards' do 
       tags 'Cards'
       operationId "adminListCards"
+      consumes 'application/json'
       parameter name: :memberId, in: :query, type: :string, required: true
 
       response '200', 'cards found' do 
@@ -72,19 +74,9 @@ describe 'Admin::AccessCards API', type: :request do
     post 'Creates an access card' do 
       tags 'Cards'
       operationId "adminCreateCard"
+      consumes 'application/json'
       parameter name: :createAccessCardDetails, in: :body, schema: {
         title: :createAccessCardDetails,
-        type: :object,
-        properties: {
-          memberId: { type: :string },
-          uid: { type: :string },
-        },
-        required: [:memberId, :uid]
-      }, required: true
-
-      request_body_json schema: {
-        title: :createAccessCardDetails,
-        name: :createAccessCardDetails,
         type: :object,
         properties: {
           memberId: { type: :string },
@@ -150,18 +142,10 @@ describe 'Admin::AccessCards API', type: :request do
     put 'Updates a card' do 
       tags 'Cards'
       operationId "adminUpdateCard"
+      consumes 'application/json'
       parameter name: :id, in: :path, type: :string
 
       parameter name: :updateAccessCardDetails, in: :body, schema: {
-        title: :updateAccessCardDetails,
-        type: :object,
-        properties: {
-          cardLocation: { type: :string }
-        },
-        required: [:cardLocation]
-      }, required: true
-
-      request_body_json schema: {
         title: :updateAccessCardDetails,
         type: :object,
         properties: {

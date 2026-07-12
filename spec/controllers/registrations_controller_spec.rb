@@ -43,8 +43,8 @@ RSpec.describe RegistrationsController, type: :controller do
 
       it "assigns a newly created member as @member" do
         post :create, params: valid_attributes, format: :json
-        expect(assigns(:member)).to be_a(Member)
-        expect(assigns(:member)).to be_persisted
+        expect(Member.last).to be_a(Member)
+        expect(Member.last).to be_persisted
       end
 
       it "renders json of the created member" do
@@ -52,7 +52,7 @@ RSpec.describe RegistrationsController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(Member.last.id.as_json)
       end
 

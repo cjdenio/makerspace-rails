@@ -22,11 +22,11 @@ class RegistrationToken
 
   private
   def one_active_token_per_email
-    member = Member.where(email: self.email).first
+    member = Member.where(email: self.email.to_s.downcase).first
     if member
       errors.add(:email, "Email taken")
     else
-      priorTokens = self.class.where(email: self.email, used: false)
+      priorTokens = self.class.where(email: self.email.to_s.downcase, used: false)
       if priorTokens.length > 0
         priorTokens.each do |token|
           token.used = true

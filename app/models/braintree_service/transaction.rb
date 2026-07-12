@@ -26,9 +26,27 @@ class BraintreeService::Transaction < Braintree::Transaction
   end
 
   def self.get_transactions(gateway, search_query = nil)
-    transactions = gateway.transaction.search { |search| search_query && search_query.call(search) }
-    transactions.map do |transaction|
-      normalize(gateway, transaction)
+    begin
+      Timeout::timeout(25) do
+        transactions = gateway.transaction.search { |search| search_query && search_query.call(search) }
+        # Braintree::ResourceCollection#first does not accept an argument (gem 2.94.0).
+        # Use each with a break — fetches IDs in one call then the first page of
+        # 50 records and stops, preventing H12 timeout and R14 memory errors.
+        # Use date filters in the UI to narrow results further.
+        results = []
+        transactions.each do |transaction|
+          results << normalize(gateway, transaction)
+          break if results.length >= 50
+        end
+        results
+      end
+    rescue Timeout::Error => e
+      ::Service::SlackConnector.send_slack_message(
+        "⚠️ Braintree transaction search timed out after 25s. Try narrowing the date range. Error: #{e.message}",
+        ::Service::SlackConnector.logs_channel
+      )
+      Honeybadger.notify(e) if defined?(Honeybadger)
+      raise ::Error::UnprocessableEntity.new("Braintree request timed out. Please narrow your date range and try again.")
     end
   end
 
@@ -75,9 +93,17 @@ class BraintreeService::Transaction < Braintree::Transaction
 
     BillingMailer.receipt(invoice.member.email, transaction.id, invoice.id.to_s).deliver_later
     unless subscription.nil?
-      enque_message("New subscription from #{invoice.member.fullname} received for #{invoice.name}")
+      enque_message(
+        "New subscription from #{invoice.member.fullname} received for #{invoice.name}",
+        ::Service::SlackConnector.members_relations_channel,
+        ::Service::SlackConnector.request_caller_id("transaction.submit_invoice_for_settlement.subscription.#{invoice.id}")
+      )
     end
-    enque_message("Payment from #{invoice.member.fullname} of $#{invoice.amount} received for #{invoice.name}")
+    enque_message(
+      "Payment from #{invoice.member.fullname} of $#{invoice.amount} received for #{invoice.name}",
+      ::Service::SlackConnector.members_relations_channel,
+      ::Service::SlackConnector.request_caller_id("transaction.submit_invoice_for_settlement.payment.#{invoice.id}")
+    )
     normalize(gateway, transaction)
   end
 

@@ -2,7 +2,7 @@ Rails.application.configure do
 
   # Settings specified here will take precedence over those in config/application.rb.
   config.action_mailer.default_url_options = {
-    host: "https://#{::Util.is_prod? ? 'members.manchestermakerspace.org' : 'makerspace-test.herokuapp.com'}",
+    host: ENV.fetch('APP_DOMAIN'),
     protocol: "https"
   }
   config.action_mailer.delivery_method = :smtp
@@ -10,13 +10,13 @@ Rails.application.configure do
   config.action_mailer.raise_delivery_errors = false
   config.action_mailer.default :charset => "utf-8"
 
-  config.cache_store = :redis_store, {
+  config.cache_store = :redis_cache_store, {
+    url: ENV["REDIS_URL"],
     expires_in: 1.hour,
-    namespace: 'cache',
-    redis: { host: ENV['REDIS_URL'], port: ENV['REDIS_PORT'], db: ENV['REDIS_DB'] }
+    namespace: "cache"
   }
 
-  if ::Util.is_prod?
+  if ENV['GMAIL_USERNAME'].present?
     config.action_mailer.smtp_settings = {
       authentication: :plain,
       address: 'smtp.gmail.com',
@@ -25,22 +25,26 @@ Rails.application.configure do
       user_name: ENV['GMAIL_USERNAME'],
       password: ENV['GMAIL_PASSWORD']
     }
-  elsif ENV['MAILTRAP_API_TOKEN']
-    response = RestClient::Resource.new("https://mailtrap.io/api/v1/inboxes.json?api_token=#{ENV['MAILTRAP_API_TOKEN']}").get
-    inbox = JSON.parse(response)[0]
+  elsif ENV['SMTP_USERNAME'].present?
     config.action_mailer.smtp_settings = {
-      :user_name => inbox['username'],
-      :password => inbox['password'],
-      :address => inbox['domain'],
-      :domain => inbox['domain'],
-      :port => 2525,
-      :authentication => :plain
+      authentication: :login,
+      address: ENV['SMTP_ADDRESS'],
+      host: ENV['SMTP_ADDRESS'],
+      port: (ENV['SMTP_PORT'] || 587).to_i,
+      user_name: ENV['SMTP_USERNAME'],
+      password: ENV['SMTP_PASSWORD'],
+      enable_starttls_auto: true
     }
+  else
+    config.action_mailer.perform_deliveries = false
+    $stderr.puts '[Mailer] WARNING: No mail provider configured — email delivery disabled'
   end
 
   # Code is not reloaded between requests.
   config.cache_classes = true
-
+  config.hosts << "members.manchestermakerspace.com"
+  config.hosts << "members.manchestermakerspace.org"
+  config.hosts << "makerspace-dev-51ba804d4c30.herokuapp.com"
   # Eager load code on boot. This eager loads most of Rails and
   # your application in memory, allowing both threaded web servers
   # and those relying on copy on write to perform better.
@@ -54,7 +58,12 @@ Rails.application.configure do
   # Disable serving static files from the `/public` folder by default since
   # Apache or NGINX already handles this.
   config.public_file_server.enabled = ENV['RAILS_SERVE_STATIC_FILES'].present?
-
+  if config.public_file_server.enabled
+    $stderr.puts '[config] RAILS_SERVE_STATIC_FILES=true'
+  else
+    $stderr.puts '[RAILS_SERVE_STATIC_FILES] WARNING: Will not directly serve static files, do you have apache or nginx to do it for you?!'
+  end
+  
   # Compress JavaScripts and CSS.
   #config.assets.js_compressor = :uglifier
   #config.assets.css_compressor = :sass
@@ -65,7 +74,7 @@ Rails.application.configure do
   # `config.assets.precompile` and `config.assets.version` have moved to config/initializers/assets.rb
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
-  config.action_controller.asset_host = config.action_mailer.default_url_options[:host]
+  # config.action_controller.asset_host = config.action_mailer.default_url_options[:host]
   config.action_mailer.asset_host = config.action_mailer.default_url_options[:host]
   
   # Specifies the header that your server uses for sending files.

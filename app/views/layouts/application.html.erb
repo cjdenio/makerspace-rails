@@ -1,16 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Makerspace Authorization</title>
+  <title><%= (ENV['BT_ENV'] != 'production' || ENV['SLACK_ENV'] != 'production' || Rails.env != 'production' || ENV['RACK_ENV'] != 'production') ? 'DEV - ' : '' %>Makerspace Authorization</title>
   <%= favicon_link_tag asset_path('favicon.png'), :rel => 'icon', :type =>  'image/png' %>
   <%= favicon_link_tag asset_path('favicon.png'), :rel => 'apple-touch-icon', :type =>  'image/png' %>
   <%= stylesheet_link_tag 'application' %>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
   <meta
     name="viewport"
     content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no"
   />
   </head>
+<% if ENV['BGCOLOR'] %>
+<body BGCOLOR="<%= ENV['BGCOLOR'] %>">
+<% else %>
 <body>
+<% end %>
+<% if ENV['BT_ENV'] != 'production' || ENV['SLACK_ENV'] != 'production' || Rails.env != 'production' || ENV['RACK_ENV'] != 'production' %>
+  <div class="watermark">
+    DEVELOPMENT
+    | Braintree: <%= ENV.fetch('BT_ENV', 'unknown') %>
+    | Rails: <%= Rails.env %>
+    | Rack: <%= ENV.fetch('RACK_ENV', 'unknown') %>
+    | Slack: <%= ENV.fetch('SLACK_ENV', 'unknown') %>
+  </div>
+<% end %>
   <%= javascript_include_tag 'application' %>
 </body>
 </html>

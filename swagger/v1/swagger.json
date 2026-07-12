@@ -4,14 +4,6 @@
     "title": "Makerspace Server V2",
     "version": "v2"
   },
-  "basePath": "/api",
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json",
-    "text/html"
-  ],
   "components": {
     "schemas": {
       "MemberStatus": {
@@ -27,6 +19,7 @@
         "type": "string",
         "enum": [
           "admin",
+          "resource_manager",
           "member"
         ]
       },
@@ -1268,53 +1261,7 @@
         "operationId": "adminListAnalytics",
         "responses": {
           "200": {
-            "description": "analytics read",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "totalMembers": {
-                      "type": "number"
-                    },
-                    "newMembers": {
-                      "type": "number"
-                    },
-                    "subscribedMembers": {
-                      "type": "number"
-                    },
-                    "pastDueInvoices": {
-                      "type": "number"
-                    },
-                    "refundsPending": {
-                      "type": "number"
-                    }
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "totalMembers": {
-                      "type": "number"
-                    },
-                    "newMembers": {
-                      "type": "number"
-                    },
-                    "subscribedMembers": {
-                      "type": "number"
-                    },
-                    "pastDueInvoices": {
-                      "type": "number"
-                    },
-                    "refundsPending": {
-                      "type": "number"
-                    }
-                  }
-                }
-              }
-            }
+            "description": "analytics read"
           }
         }
       }
@@ -1338,44 +1285,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Receipt found",
-            "content": {
-            }
+            "description": "Receipt found"
           },
           "302": {
-            "description": "User not authenticated",
-            "content": {
-            }
+            "description": "User not authenticated"
           },
           "404": {
-            "description": "Transaction not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Transaction not found"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           }
         }
       }
@@ -1445,55 +1364,13 @@
         ],
         "responses": {
           "200": {
-            "description": "subscription found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Subscription"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Subscription"
-                  }
-                }
-              }
-            }
+            "description": "subscription found"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           }
         }
       }
@@ -1517,39 +1394,13 @@
         ],
         "responses": {
           "204": {
-            "description": "refund requested",
-            "content": {
-            }
+            "description": "refund requested"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           }
         }
       }
@@ -1627,55 +1478,13 @@
         ],
         "responses": {
           "200": {
-            "description": "transactions found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Transaction"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Transaction"
-                  }
-                }
-              }
-            }
+            "description": "transactions found"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           }
         }
       }
@@ -1699,49 +1508,13 @@
         ],
         "responses": {
           "200": {
-            "description": "transaction found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Transaction"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Transaction"
-                }
-              }
-            }
+            "description": "transaction found"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           }
         }
       },
@@ -1763,39 +1536,13 @@
         ],
         "responses": {
           "204": {
-            "description": "refund requested",
-            "content": {
-            }
+            "description": "refund requested"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           }
         }
       }
@@ -1809,49 +1556,13 @@
         "operationId": "adminGetNewCard",
         "responses": {
           "200": {
-            "description": "Card intilized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RejectionCard"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/RejectionCard"
-                }
-              }
-            }
+            "description": "Card intilized"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       }
@@ -1875,70 +1586,16 @@
         ],
         "responses": {
           "200": {
-            "description": "cards found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Card"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Card"
-                  }
-                }
-              }
-            }
+            "description": "cards found"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "member not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "member not found"
           }
         }
       },
@@ -1948,108 +1605,22 @@
           "Cards"
         ],
         "operationId": "adminCreateCard",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createAccessCardDetails",
-                "name": "createAccessCardDetails",
-                "type": "object",
-                "properties": {
-                  "memberId": {
-                    "type": "string"
-                  },
-                  "uid": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "memberId",
-                  "uid"
-                ]
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "access card created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Card"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Card"
-                }
-              }
-            }
+            "description": "access card created"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "422": {
-            "description": "missing parameter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "missing parameter"
           },
           "404": {
-            "description": "member not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "member not found"
           }
         }
       }
@@ -2071,85 +1642,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateAccessCardDetails",
-                "type": "object",
-                "properties": {
-                  "cardLocation": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "cardLocation"
-                ]
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "card updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Card"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Card"
-                }
-              }
-            }
+            "description": "card updated"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Invoice not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Invoice not found"
           }
         }
       }
@@ -2197,70 +1701,16 @@
         ],
         "responses": {
           "200": {
-            "description": "reports found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Report"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Report"
-                  }
-                }
-              }
-            }
+            "description": "reports found"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Earned membership not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Earned membership not found"
           }
         }
       }
@@ -2300,55 +1750,13 @@
         ],
         "responses": {
           "200": {
-            "description": "earned memberships found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/EarnedMembership"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/EarnedMembership"
-                  }
-                }
-              }
-            }
+            "description": "earned memberships found"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       },
@@ -2358,65 +1766,16 @@
           "EarnedMemberships"
         ],
         "operationId": "adminCreateEarnedMembership",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createEarnedMembershipDetails",
-                "$ref": "#/components/schemas/NewEarnedMembership"
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "earned membership created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EarnedMembership"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/EarnedMembership"
-                }
-              }
-            }
+            "description": "earned membership created"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       }
@@ -2440,64 +1799,16 @@
         ],
         "responses": {
           "200": {
-            "description": "earned membership found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EarnedMembership"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/EarnedMembership"
-                }
-              }
-            }
+            "description": "earned membership found"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "EarnedMembership not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "EarnedMembership not found"
           }
         }
       },
@@ -2517,77 +1828,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateEarnedMembershipDetails",
-                "$ref": "#/components/schemas/EarnedMembership"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "earned membership updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EarnedMembership"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/EarnedMembership"
-                }
-              }
-            }
+            "description": "earned membership updated"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "EarnedMembership not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "EarnedMembership not found"
           }
         }
       }
@@ -2599,65 +1851,16 @@
           "InvoiceOptions"
         ],
         "operationId": "adminCreateInvoiceOption",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createInvoiceOptionDetails",
-                "$ref": "#/components/schemas/NewInvoiceOption"
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "invoice option created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvoiceOption"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvoiceOption"
-                }
-              }
-            }
+            "description": "invoice option created"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       }
@@ -2679,77 +1882,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateInvoiceOptionDetails",
-                "$ref": "#/components/schemas/InvoiceOption"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "invoice option updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvoiceOption"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvoiceOption"
-                }
-              }
-            }
+            "description": "invoice option updated"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Invoice option not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Invoice option not found"
           }
         }
       },
@@ -2771,54 +1915,16 @@
         ],
         "responses": {
           "204": {
-            "description": "invoice option deleted",
-            "content": {
-            }
+            "description": "invoice option deleted"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Invoice Option not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Invoice Option not found"
           }
         }
       }
@@ -2942,55 +2048,13 @@
         ],
         "responses": {
           "200": {
-            "description": "invoices found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Invoice"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Invoice"
-                  }
-                }
-              }
-            }
+            "description": "invoices found"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       },
@@ -3000,114 +2064,22 @@
           "Invoices"
         ],
         "operationId": "adminCreateInvoices",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createInvoiceDetails",
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "memberId": {
-                    "type": "string"
-                  },
-                  "resourceId": {
-                    "type": "string"
-                  },
-                  "discountId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id",
-                  "memberId",
-                  "resourceId"
-                ]
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "invoice created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Invoice"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Invoice"
-                }
-              }
-            }
+            "description": "invoice created"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "422": {
-            "description": "missing parameter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "missing parameter"
           },
           "404": {
-            "description": "invoice option not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "invoice option not found"
           }
         }
       }
@@ -3129,82 +2101,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateInvoiceDetails",
-                "type": "object",
-                "properties": {
-                  "settled": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "invoice updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Invoice"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Invoice"
-                }
-              }
-            }
+            "description": "invoice updated"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Invoice not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Invoice not found"
           }
         }
       },
@@ -3226,54 +2134,16 @@
         ],
         "responses": {
           "204": {
-            "description": "invoice deleted",
-            "content": {
-            }
+            "description": "invoice deleted"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Invoice not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Invoice not found"
           }
         }
       }
@@ -3285,65 +2155,16 @@
           "Members"
         ],
         "operationId": "adminCreateMember",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createMemberDetails",
-                "$ref": "#/components/schemas/NewMember"
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "member created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              }
-            }
+            "description": "member created"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       }
@@ -3365,77 +2186,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateMemberDetails",
-                "$ref": "#/components/schemas/AdminUpdateMemberDetails"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "member updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              }
-            }
+            "description": "member updated"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Member not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Member not found"
           }
         }
       }
@@ -3491,55 +2253,13 @@
         ],
         "responses": {
           "200": {
-            "description": "rentals found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Rental"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Rental"
-                  }
-                }
-              }
-            }
+            "description": "rentals found"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       },
@@ -3549,65 +2269,16 @@
           "Rentals"
         ],
         "operationId": "adminCreateRental",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createRentalDetails",
-                "$ref": "#/components/schemas/NewRental"
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "rental created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Rental"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Rental"
-                }
-              }
-            }
+            "description": "rental created"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       }
@@ -3629,77 +2300,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateRentalDetails",
-                "$ref": "#/components/schemas/Rental"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "rental updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Rental"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Rental"
-                }
-              }
-            }
+            "description": "rental updated"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Rental not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Rental not found"
           }
         }
       },
@@ -3721,54 +2333,16 @@
         ],
         "responses": {
           "204": {
-            "description": "rental deleted",
-            "content": {
-            }
+            "description": "rental deleted"
           },
           "403": {
-            "description": "User unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthorized"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           },
           "404": {
-            "description": "Rental not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Rental not found"
           }
         }
       }
@@ -3827,25 +2401,7 @@
         ],
         "responses": {
           "200": {
-            "description": "billing discounts found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Discount"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Discount"
-                  }
-                }
-              }
-            }
+            "description": "billing discounts found"
           }
         }
       }
@@ -3859,50 +2415,10 @@
         "operationId": "getNewPaymentMethod",
         "responses": {
           "200": {
-            "description": "Token created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "clientToken": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "clientToken"
-                  ]
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "clientToken": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "clientToken"
-                  ]
-                }
-              }
-            }
+            "description": "Token created"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           }
         }
       }
@@ -3916,54 +2432,10 @@
         "operationId": "listPaymentMethods",
         "responses": {
           "200": {
-            "description": "payment_methods found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/components/schemas/CreditCard"
-                      },
-                      {
-                        "$ref": "#/components/schemas/PayPalAccount"
-                      }
-                    ]
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/components/schemas/CreditCard"
-                      },
-                      {
-                        "$ref": "#/components/schemas/PayPalAccount"
-                      }
-                    ]
-                  }
-                }
-              }
-            }
+            "description": "payment_methods found"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           }
         }
       },
@@ -3973,76 +2445,16 @@
           "PaymentMethods"
         ],
         "operationId": "createPaymentMethod",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createPaymentMethodDetails",
-                "type": "object",
-                "properties": {
-                  "paymentMethodNonce": {
-                    "type": "string"
-                  },
-                  "makeDefault": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "paymentMethodNonce"
-                ]
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "payment_method created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreditCard"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreditCard"
-                }
-              }
-            }
+            "description": "payment_method created"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "422": {
-            "description": "parameter missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "parameter missing"
           }
         }
       }
@@ -4066,49 +2478,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Payment method deleted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreditCard"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreditCard"
-                }
-              }
-            }
+            "description": "Payment method deleted"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           }
         }
       },
@@ -4130,39 +2506,13 @@
         ],
         "responses": {
           "204": {
-            "description": "Payment method deleted",
-            "content": {
-            }
+            "description": "Payment method deleted"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           }
         }
       }
@@ -4213,25 +2563,7 @@
         ],
         "responses": {
           "200": {
-            "description": "billing plans found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plan"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plan"
-                  }
-                }
-              }
-            }
+            "description": "billing plans found"
           }
         }
       }
@@ -4255,44 +2587,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Receipt found",
-            "content": {
-            }
+            "description": "Receipt found"
           },
           "302": {
-            "description": "User not authenticated",
-            "content": {
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           },
           "404": {
-            "description": "Transaction not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Transaction not found"
           }
         }
       }
@@ -4316,64 +2620,16 @@
         ],
         "responses": {
           "200": {
-            "description": "subscription found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Subscription"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Subscription"
-                }
-              }
-            }
+            "description": "subscription found"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           },
           "404": {
-            "description": "Subscription not for user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Subscription not for user"
           }
         }
       },
@@ -4393,85 +2649,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateSubscriptionDetails",
-                "type": "object",
-                "properties": {
-                  "paymentMethodToken": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "paymentMethodToken"
-                ]
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "subscription updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Subscription"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Subscription"
-                }
-              }
-            }
+            "description": "subscription updated"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           },
           "404": {
-            "description": "Subscription not for user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Subscription not for user"
           }
         }
       },
@@ -4493,54 +2682,16 @@
         ],
         "responses": {
           "204": {
-            "description": "refund requested",
-            "content": {
-            }
+            "description": "refund requested"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           },
           "404": {
-            "description": "Subscription not for user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Subscription not for user"
           }
         }
       }
@@ -4610,55 +2761,13 @@
         ],
         "responses": {
           "200": {
-            "description": "transactions found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Transaction"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Transaction"
-                  }
-                }
-              }
-            }
+            "description": "transactions found"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           }
         }
       },
@@ -4668,112 +2777,22 @@
           "Transactions"
         ],
         "operationId": "createTransaction",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createTransactionDetails",
-                "type": "object",
-                "properties": {
-                  "invoiceId": {
-                    "type": "string"
-                  },
-                  "invoiceOptionId": {
-                    "type": "string"
-                  },
-                  "discountId": {
-                    "type": "string"
-                  },
-                  "paymentMethodId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "paymentMethodId"
-                ]
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "transaction created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Transaction"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Transaction"
-                }
-              }
-            }
+            "description": "transaction created"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           },
           "422": {
-            "description": "Wrong invoice option type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Wrong invoice option type"
           },
           "404": {
-            "description": "invoice option not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "invoice option not found"
           }
         }
       }
@@ -4797,54 +2816,16 @@
         ],
         "responses": {
           "204": {
-            "description": "refund requested",
-            "content": {
-            }
+            "description": "refund requested"
           },
           "403": {
-            "description": "User not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authorized"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "404": {
-            "description": "invoice not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "invoice not found"
           }
         }
       }
@@ -4856,33 +2837,10 @@
           "ClientErrorHandler"
         ],
         "operationId": "message",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "messageDetails",
-                "type": "object",
-                "properties": {
-                  "message": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "message"
-                ]
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "204": {
-            "description": "Message sent",
-            "content": {
-            }
+            "description": "Message sent"
           }
         }
       }
@@ -4922,29 +2880,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Document found",
-            "content": {
-            }
+            "description": "Document found"
           },
           "302": {
-            "description": "User not authenticated",
-            "content": {
-            }
+            "description": "User not authenticated"
           },
           "404": {
-            "description": "Document not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Document not found"
           }
         }
       }
@@ -4992,55 +2934,13 @@
         ],
         "responses": {
           "200": {
-            "description": "reports found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Report"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Report"
-                  }
-                }
-              }
-            }
+            "description": "reports found"
           },
           "403": {
-            "description": "Forbidden not an earned member",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Forbidden not an earned member"
           },
           "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Unauthorized"
           }
         }
       },
@@ -5060,47 +2960,12 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createEarnedMembershipReportDetails",
-                "$ref": "#/components/schemas/NewReport"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "report created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Report"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Report"
-                }
-              }
-            }
+            "description": "report created"
           },
           "403": {
-            "description": "unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "unauthorized"
           }
         }
       }
@@ -5124,64 +2989,16 @@
         ],
         "responses": {
           "200": {
-            "description": "earned membership found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EarnedMembership"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/EarnedMembership"
-                }
-              }
-            }
+            "description": "earned membership found"
           },
           "404": {
-            "description": "earned membership not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "earned membership not found"
           },
           "403": {
-            "description": "Forbidden access to different membership",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Forbidden access to different membership"
           },
           "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Unauthorized"
           }
         }
       }
@@ -5248,25 +3065,7 @@
         ],
         "responses": {
           "200": {
-            "description": "invoice_options found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/InvoiceOption"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/InvoiceOption"
-                  }
-                }
-              }
-            }
+            "description": "invoice_options found"
           }
         }
       }
@@ -5290,34 +3089,10 @@
         ],
         "responses": {
           "200": {
-            "description": "invoice option found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvoiceOption"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvoiceOption"
-                }
-              }
-            }
+            "description": "invoice option found"
           },
           "404": {
-            "description": "invoice option not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "invoice option not found"
           }
         }
       }
@@ -5422,40 +3197,10 @@
         ],
         "responses": {
           "200": {
-            "description": "invoices found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Invoice"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Invoice"
-                  }
-                }
-              }
-            }
+            "description": "invoices found"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           }
         }
       },
@@ -5465,91 +3210,19 @@
           "Invoices"
         ],
         "operationId": "createInvoice",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "createInvoiceDetails",
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "discountId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id"
-                ]
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "invoice created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Invoice"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Invoice"
-                }
-              }
-            }
+            "description": "invoice created"
           },
           "401": {
-            "description": "User not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenticated"
           },
           "422": {
-            "description": "parameter missing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "parameter missing"
           },
           "404": {
-            "description": "invoice option not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "invoice option not found"
           }
         }
       }
@@ -5573,64 +3246,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Permissions found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": "Permissions found"
           },
           "404": {
-            "description": "Member not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Member not found"
           },
           "403": {
-            "description": "Member not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Member not authorized"
           },
           "401": {
-            "description": "User not authenciated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenciated"
           }
         }
       }
@@ -5686,40 +3311,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Members found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MemberSummary"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MemberSummary"
-                  }
-                }
-              }
-            }
+            "description": "Members found"
           },
           "401": {
-            "description": "User not authenciated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenciated"
           }
         }
       },
@@ -5729,93 +3324,13 @@
           "Authentication"
         ],
         "operationId": "registerMember",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "registerMemberDetails",
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  },
-                  "firstname": {
-                    "type": "string"
-                  },
-                  "lastname": {
-                    "type": "string"
-                  },
-                  "phone": {
-                    "type": "string"
-                  },
-                  "address": {
-                    "type": "object",
-                    "properties": {
-                      "street": {
-                        "type": "string"
-                      },
-                      "unit": {
-                        "type": "string"
-                      },
-                      "city": {
-                        "type": "string"
-                      },
-                      "state": {
-                        "type": "string"
-                      },
-                      "postalCode": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                },
-                "required": [
-                  "email",
-                  "password",
-                  "firstname",
-                  "lastname"
-                ]
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Member registered",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              }
-            }
+            "description": "Member registered"
           },
           "422": {
-            "description": "Email already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Email already exists"
           }
         }
       }
@@ -5839,49 +3354,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Member found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              }
-            }
+            "description": "Member found"
           },
           "404": {
-            "description": "Member not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Member not found"
           },
           "401": {
-            "description": "User not authenciated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenciated"
           }
         }
       },
@@ -5901,119 +3380,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateMemberDetails",
-                "properties": {
-                  "firstname": {
-                    "type": "string"
-                  },
-                  "lastname": {
-                    "type": "string"
-                  },
-                  "email": {
-                    "type": "string"
-                  },
-                  "memberContractOnFile": {
-                    "type": "boolean"
-                  },
-                  "silenceEmails": {
-                    "type": "boolean"
-                  },
-                  "phone": {
-                    "type": "string"
-                  },
-                  "address": {
-                    "type": "object",
-                    "properties": {
-                      "street": {
-                        "type": "string"
-                      },
-                      "unit": {
-                        "type": "string"
-                      },
-                      "city": {
-                        "type": "string"
-                      },
-                      "state": {
-                        "type": "string"
-                      },
-                      "postalCode": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "signature": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Signature upload",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              }
-            }
+            "description": "Signature upload"
           },
           "403": {
-            "description": "Forbidden updating different member",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Forbidden updating different member"
           },
           "401": {
-            "description": "User not authenciated or authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenciated or authorized"
           },
           "404": {
-            "description": "member not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "member not found"
           }
         }
       }
@@ -6025,63 +3403,13 @@
           "Authentication"
         ],
         "operationId": "signIn",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "signInDetails",
-                "type": "object",
-                "properties": {
-                  "member": {
-                    "type": "object",
-                    "properties": {
-                      "email": {
-                        "type": "string"
-                      },
-                      "password": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "User signed in",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Member"
-                }
-              }
-            }
+            "description": "User signed in"
           },
           "401": {
-            "description": "User unauthenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User unauthenticated"
           }
         }
       }
@@ -6095,9 +3423,7 @@
         "operationId": "signOut",
         "responses": {
           "204": {
-            "description": "User signed out",
-            "content": {
-            }
+            "description": "User signed out"
           }
         }
       }
@@ -6109,50 +3435,13 @@
           "Password"
         ],
         "operationId": "requestPasswordReset",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "passwordResetDetails",
-                "type": "object",
-                "properties": {
-                  "member": {
-                    "type": "object",
-                    "properties": {
-                      "email": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "201": {
-            "description": "Instructions sent",
-            "content": {
-            }
+            "description": "Instructions sent"
           },
           "422": {
-            "description": "Email not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/passwordError"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/passwordError"
-                }
-              }
-            }
+            "description": "Email not found"
           }
         }
       },
@@ -6162,53 +3451,13 @@
           "Password"
         ],
         "operationId": "resetPassword",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "passwordResetDetails",
-                "type": "object",
-                "properties": {
-                  "member": {
-                    "type": "object",
-                    "properties": {
-                      "resetPasswordToken": {
-                        "type": "string"
-                      },
-                      "password": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "204": {
-            "description": "Password reset",
-            "content": {
-            }
+            "description": "Password reset"
           },
           "422": {
-            "description": "Invalid token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/passwordResetError"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/passwordResetError"
-                }
-              }
-            }
+            "description": "Invalid token"
           }
         }
       }
@@ -6220,48 +3469,13 @@
           "Authentication"
         ],
         "operationId": "sendRegistrationEmail",
-        "parameters": [
-
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "registrationEmailDetails",
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "email"
-                ]
-              }
-            }
-          }
-        },
+        "parameters": [],
         "responses": {
           "204": {
-            "description": "Registration email sent",
-            "content": {
-            }
+            "description": "Registration email sent"
           },
           "409": {
-            "description": "Email already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Email already exists"
           }
         }
       }
@@ -6301,25 +3515,7 @@
         ],
         "responses": {
           "200": {
-            "description": "rentals found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Rental"
-                  }
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Rental"
-                  }
-                }
-              }
-            }
+            "description": "rentals found"
           }
         }
       }
@@ -6343,49 +3539,13 @@
         ],
         "responses": {
           "200": {
-            "description": "rental found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Rental"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Rental"
-                }
-              }
-            }
+            "description": "rental found"
           },
           "404": {
-            "description": "rental not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "rental not found"
           },
           "401": {
-            "description": "User not authenciated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenciated"
           }
         }
       },
@@ -6405,85 +3565,18 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "updateRentalDetails",
-                "type": "object",
-                "properties": {
-                  "signature": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "signature"
-                ]
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "rental updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Rental"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/Rental"
-                }
-              }
-            }
+            "description": "rental updated"
           },
           "403": {
-            "description": "Forbidden updating different member's rental",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Forbidden updating different member's rental"
           },
           "401": {
-            "description": "User not authenciated or authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "User not authenciated or authorized"
           },
           "404": {
-            "description": "Rental not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              },
-              "text/html": {
-                "schema": {
-                  "$ref": "#/components/schemas/error"
-                }
-              }
-            }
+            "description": "Rental not found"
           }
         }
       }

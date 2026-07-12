@@ -10,10 +10,6 @@ module MemberSubscriber
       send_google_invite(event[:model])
     end
 
-    Member.subscribe(:email_changed) do |event|
-      send_slack_invite(event[:model])
-      send_google_invite(event[:model])
-    end
 
     Member.subscribe(:billing_info_changed) do |event|
       update_braintree_customer_info(event[:model])
@@ -25,7 +21,7 @@ module MemberSubscriber
         begin 
           ::BraintreeService::Subscription.cancel(connect_gateway(), subscription_id)
         rescue => err
-          enque_message("Error cancelling #{event[:model].fullname}'s membership_subscription. Err: #{err}")
+          ::Service::SlackConnector.send_slack_message("Error cancelling #{event[:model].fullname}'s membership_subscription. Err: #{err}")
         end
       end
 
@@ -41,16 +37,24 @@ module MemberSubscriber
   def send_slack_invite(member)
     begin
       invite_to_slack(member.email, member.lastname, member.firstname)
+    rescue Error::NotAllowed
+      # Slack invites disabled in this environment — silent skip
+    rescue Slack::Web::Api::Errors::NotAllowedTokenType
+      # Token type doesn't support users.admin.invite (e.g. bot token in dev/test)
+      Rails.logger.warn("[MemberSubscriber] Slack invite skipped for #{member.email}: token type not allowed")
     rescue => err
-      enque_message("Error inviting #{member.fullname} to Slack. Error: #{err}")
+      ::Service::SlackConnector.send_slack_message("Error inviting #{member.fullname} to Slack. Error: #{err}")
     end
   end
 
   def send_google_invite(member)
     begin
       invite_gdrive(member.email)
-    rescue Error::Google::Upload => err
-      enque_message("Error sharing Member Resources folder with #{member.fullname}. Error: #{err}")
+      invite_gdrive_writer(member.email)
+    rescue Error::NotAllowed
+      # Google Drive invites disabled in this environment — silent skip
+    rescue Error::Google::Share, Error::Google::Upload => err
+      ::Service::SlackConnector.send_slack_message("Error sharing Member Resources folder with #{member.fullname}. Error: #{err}")
     end
   end
 

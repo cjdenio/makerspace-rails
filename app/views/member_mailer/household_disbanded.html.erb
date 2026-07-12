@@ -1,0 +1,16 @@
+<div>
+  <h3>Manchester Makerspace Household Membership Update</h3>
+</div>
+
+<div>
+  <p>Hi <%= @member.fullname %>,</p>
+
+  <% if @primary_recipient %>
+    <p>Your household membership has been disbanded because your account was renewed with an individual membership plan.</p>
+  <% else %>
+    <p>Your household membership has been disbanded because the primary household member, <%= @primary_member.fullname %>, renewed with an individual membership plan.</p>
+    <p>Please elect a new membership plan before your current expiration date to keep your membership active.</p>
+  <% end %>
+
+  <p>If you believe this was a mistake, please contact Manchester Makerspace membership support.</p>
+</div>

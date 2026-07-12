@@ -1,45 +1,125 @@
 version: 2.1
-orbs:
-  ruby: circleci/ruby@0.1.2
-
 jobs:
   build:
     docker:
-      - image: circleci/ruby:2.6.6-stretch-node-browsers
+      - image: cimg/ruby:3.2.9-browsers
+        auth:
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_PASSWORD
+      - image: mongo:7.0
+        auth:
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_PASSWORD
+        environment:
+          MONGO_INITDB_DATABASE: makerspace_test
       - image: redis
-    executor: ruby/default
+        auth:
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_PASSWORD
+    resource_class: large
     steps:
       - checkout
       - run:
-          name: Which bundler?
-          command: bundle -v
-      - ruby/bundle-install
+          name: Check environment
+          command: |
+            set +e
+            google-chrome --version
+            chromedriver --version
+            node -v
+            set -e
+            ruby -v
+            which ruby
+            uname -m
       - run:
-          name: UT
-          command: bundle exec rspec
+          name: Install Bundler
+          command: |
+            gem install bundler
+            bundle -v
+      - restore_cache:
+          keys:
+            - bundle-v3-{{ checksum "Gemfile.lock" }}
+            - bundle-v3-
+      - run:
+          name: Bundle install
+          command: |
+            bundle config set path vendor/bundle
+            bundle install --jobs 4 --retry 3
+      - save_cache:
+          key: bundle-v3-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
+      - run:
+          name: Wait for MongoDB
+          command: |
+            set +e
+            if ! command -v mongosh > /dev/null 2>&1 ; then
+              echo "Candygram for Mongo..."
+              curl -L -O https://downloads.mongodb.com/compass/mongodb-mongosh_2.1.1_amd64.deb
+              sudo dpkg -i mongodb-mongosh_2.1.1_amd64.deb
+              sudo apt-get update
+              sudo apt-get install -f -y
+              mongosh --version || echo "Mongo only pawn in game of life"
+            fi
+            set -e
+            for i in $(seq 1 30); do
+              mongosh --eval "db.runCommand({ ping: 1 })" --quiet && break
+              echo "Waiting for mongo... ($i)"
+              sleep 2
+            done
+      - run:
+          name: Create mongoid_search indexes
+          command: |
+            bundle exec rails runner "
+              Mongoid.purge!
+              Member.create_indexes
+              Payment.create_indexes
+              puts 'Indexes created'
+            "
+      - run:
+          name: Clear React cache
+          command: rm -rf tmp/makerspace-react && echo "React cache cleared"
       - run:
           name: E2E
           command: bundle exec rake integration
+          no_output_timeout: 30m
+      - run:
+          name: UT
+          command: bundle exec rspec
       - store_artifacts:
           path: ./tmp/makerspace-react/tmp/screenshots
   publish:
     docker:
-      - image: circleci/ruby:2.6.6-stretch-node-browsers
-    executor: ruby/default
+      - image: cimg/ruby:3.2.9-browsers
+        auth:
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_PASSWORD
+    resource_class: large
     steps:
       - checkout
       - run:
-          name: Which bundler?
-          command: bundle -v
-      - ruby/bundle-install
+          name: Install Bundler
+          command: |
+            gem install bundler
+            bundle -v
+      - restore_cache:
+          keys:
+            - bundle-v3-{{ checksum "Gemfile.lock" }}
+            - bundle-v3-
+      - run:
+          name: Bundle install
+          command: |
+            bundle config set path vendor/bundle
+            bundle install --jobs 4 --retry 3
+      - save_cache:
+          key: bundle-v3-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
       - run:
           name: Publish
           command: |
-            git config --global -l
             git config --global user.email circleci@circleci
             git config --global user.name CircleCI
             bundle exec rake publish
-
 workflows:
   workflow:
     jobs:
@@ -48,3 +128,5 @@ workflows:
           filters:
             branches:
               only: master
+          requires:
+            - build

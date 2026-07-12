@@ -1,3 +1,24 @@
 /*
 *= require makerspace-react
 */
+/*
+Source - https://stackoverflow.com/a/63021761
+Posted by MiKr13, modified by community. See post 'Timeline' for change history
+Retrieved 2026-03-14, License - CC BY-SA 4.0
+*/
+
+.watermark {
+  opacity: 0.15;
+  font-size: 52px;
+  color: 'DarkSlateGray';
+  background: '#ccc';
+  position: absolute;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  right: 5px;
+  bottom: 5px;
+}

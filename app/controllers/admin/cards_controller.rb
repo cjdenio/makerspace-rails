@@ -17,6 +17,18 @@ class Admin::CardsController < AdminController
     @card.save!
     rejection_card = RejectionCard.find_by(uid: @card.uid)
     rejection_card.update_attributes!(holder: @card.holder) unless rejection_card.nil?
+
+    ::Service::AuditLogger.log(
+      log_type:       'member',
+      event_type:     'card_assigned',
+      resource_type:  'Card',
+      resource_id:    @card.id,
+      actor:          current_member,
+      subject:        @card.member,
+      after_snapshot: { uid: @card.uid, member_id: @card.member_id.to_s },
+      slack_channel:  ::Service::SlackConnector.logs_channel
+    )
+
     render json: @card, adapter: :attributes and return
   end
 
@@ -30,7 +42,21 @@ class Admin::CardsController < AdminController
   def update
     @card = Card.find(params[:id])
     raise ::Mongoid::Errors::DocumentNotFound.new(Card, { id: params[:id] }) if @card.nil?
+    before = @card.attributes.dup
     @card.update_attributes!(update_card_params)
+
+    ::Service::AuditLogger.log(
+      log_type:        'member',
+      event_type:      'card_updated',
+      resource_type:   'Card',
+      resource_id:     @card.id,
+      actor:           current_member,
+      subject:         @card.member,
+      field_changes:   @card.previous_changes,
+      before_snapshot: before,
+      after_snapshot:  @card.attributes
+    )
+
     render json: @card, adapter: :attributes and return
   end
 
