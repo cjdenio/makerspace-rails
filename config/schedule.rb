@@ -22,3 +22,7 @@
 every :day, at: '2am' do
   rake "db:backup"
 end
+
+every :day, at: '7am' do
+  runner "SlackProfileSyncJob.perform_later"
+end

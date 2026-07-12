@@ -5,7 +5,7 @@ class BillingMailer < ApplicationMailer
 
   def new_subscription(email, subscription_id, invoice_id)
     gateway = connect_gateway
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     subscription = BraintreeService::Subscription.get_subscription(gateway, subscription_id)
     payment_method = ::BraintreeService::PaymentMethod.find_payment_method_for_customer(gateway, subscription.payment_method_token, member.customer_id)
     invoice = Invoice.find(invoice_id)
@@ -17,13 +17,20 @@ class BillingMailer < ApplicationMailer
     @subscription = subscription
     @payment_method = payment_method
     @invoice = invoice
+    @google_doc_content = ::Service::EmailTemplate.render(:new_subscription, {
+      member_name: member.fullname,
+      friendly_type: invoice.resource_class == "member" ? "membership" : "rental",
+      quantity: invoice.quantity.to_s,
+      next_billing_date: Date.parse(subscription.billing_period_end_date.to_s).strftime("%m/%d/%Y"),
+      url: get_profile_url_string(member)
+    })
     send_mail(member.email, "Subscription to Manchester Makerspace", __method__.to_s)
   end
 
   def receipt(email, transaction_id, invoice_id)
     transaction = BraintreeService::Transaction.get_transaction(connect_gateway, transaction_id)
     invoice = Invoice.find(invoice_id)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     subscription, payment_method = get_details_from_transaction(transaction)
     _receipt(member, transaction, invoice, subscription, payment_method)
   end
@@ -40,7 +47,7 @@ class BillingMailer < ApplicationMailer
   def refund(email, transaction_id, invoice_id)
     transaction = BraintreeService::Transaction.get_transaction(connect_gateway, transaction_id)
     invoice = Invoice.find(invoice_id)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     subscription, payment_method = get_details_from_transaction(transaction)
     _refund(member, transaction, invoice, subscription, payment_method)
   end
@@ -57,7 +64,7 @@ class BillingMailer < ApplicationMailer
   def refund_requested(email, transaction_id, invoice_id)
     transaction = BraintreeService::Transaction.get_transaction(connect_gateway, transaction_id)
     invoice = Invoice.find(invoice_id)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     subscription, payment_method = get_details_from_transaction(transaction)
     _refund_requested(member, transaction, invoice, subscription, payment_method)
   end
@@ -72,18 +79,23 @@ class BillingMailer < ApplicationMailer
   end
 
   def canceled_subscription(email, invoice_resource_class)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     _canceled_subscription(member, invoice_resource_class)
   end
 
   def _canceled_subscription(member, invoice_resource_class)
     @member = member
     @type = invoice_resource_class
+    @google_doc_content = ::Service::EmailTemplate.render(:canceled_subscription, {
+      member_name: member.fullname,
+      friendly_type: invoice_resource_class == "member" ? "membership" : "rental",
+      url: get_profile_url_string(member)
+    })
     send_mail(member.email, "Canceled Manchester Makerspace Subscription", __method__.to_s)
   end
 
   def failed_payment(email, invoice_id, error_status)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     invoice = Invoice.find(invoice_id)
     _failed_payment(member, invoice, error_status)
   end
@@ -92,11 +104,17 @@ class BillingMailer < ApplicationMailer
     @error_status = error_status
     @member = member
     @invoice = invoice
+    @google_doc_content = ::Service::EmailTemplate.render(:failed_payment, {
+      member_name: member.fullname,
+      friendly_type: invoice.resource_class == "member" ? "membership" : "rental",
+      error_status: error_status.to_s,
+      url: get_profile_url_string(member)
+    })
     send_mail(member.email, "Failed payment to Manchester Makerspace", __method__.to_s)
   end
 
   def dispute_requested(email, invoice_id)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     invoice = Invoice.find(invoice_id)
     _dispute_requested(member, invoice)
   end
@@ -108,7 +126,7 @@ class BillingMailer < ApplicationMailer
   end
 
   def dispute_won(email, invoice_id)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     invoice = Invoice.find(invoice_id)
     _dispute_won(member, invoice)
   end
@@ -120,7 +138,7 @@ class BillingMailer < ApplicationMailer
   end
 
   def dispute_lost(email, invoice_id)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     invoice = Invoice.find(invoice_id)
     _dispute_lost(member, invoice)
   end
@@ -132,7 +150,7 @@ class BillingMailer < ApplicationMailer
   end
 
   def new_invoice(email, invoice_id)
-    member = Member.find_by(email: email)
+    member = Member.find_by(email: email.to_s.downcase)
     invoice = Invoice.find(invoice_id)
     _new_invoice(member, invoice)
   end
@@ -146,14 +164,23 @@ class BillingMailer < ApplicationMailer
   private
   def send_mail(email, subject, calling_method)
     get_profile_url()
-    mail to: email, subject: subject, template_name: calling_method.delete_prefix("_")
+    template_name = calling_method.delete_prefix("_")
+    if @google_doc_content
+      mail to: email, subject: subject, template_path: "shared", template_name: "google_doc_email"
+    else
+      mail to: email, subject: subject, template_name: template_name
+    end
   end
 
   def get_profile_url()
-    unless @member.nil? 
-      @url = url_for(action: :application, controller: :application)
-      @url += "members/#{@member.id}"
+    unless @member.nil?
+      @url = get_profile_url_string(@member)
     end
+  end
+
+  def get_profile_url_string(member)
+    base = url_for(action: :application, controller: :application)
+    "#{base}members/#{member.id}"
   end
 
   def get_details_from_transaction(transaction)

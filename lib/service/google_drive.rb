@@ -47,13 +47,14 @@ module Service
     end
 
     def invite_gdrive(email_address)
-      if ::Util.is_prod?
-        permission = Google::Apis::DriveV3::Permission.new(type: :user,
-            email_address: email_address,
-            role: :reader)
-        load_gdrive.create_permission(ENV['RESOURCES_FOLDER'], permission) do |result, err|
-          raise Error::Google::Share.new(err) unless err.nil?
-        end
+      unless ENV['GDRIVE_INVITES_ENABLED'] == 'true'
+        raise Error::NotAllowed.new('Google Drive invites are not enabled in this environment')
+      end
+      permission = Google::Apis::DriveV3::Permission.new(type: :user,
+          email_address: email_address,
+          role: :reader)
+      load_gdrive.create_permission(ENV['RESOURCES_FOLDER'], permission) do |result, err|
+        raise Error::Google::Share.new(err) unless err.nil?
       end
     end
 

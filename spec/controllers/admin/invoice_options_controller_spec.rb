@@ -27,7 +27,7 @@ RSpec.describe Admin::InvoiceOptionsController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(InvoiceOption.last.id.to_s)
       end
     end
@@ -56,7 +56,7 @@ RSpec.describe Admin::InvoiceOptionsController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(invoice_option.id.to_s)
       end
     end
@@ -97,6 +97,23 @@ RSpec.describe Admin::InvoiceOptionsController, type: :controller do
         delete :destroy, params: {id: "foo" }, format: :json
         expect(response).to have_http_status(404)
       end
+    end
+  end
+
+  describe "resource manager authorization" do
+    login_resource_manager
+
+    it "forbids changing fee options into non-fee options" do
+      fee_option = create(:invoice_option, resource_class: "fee")
+      put :update, params: { id: fee_option.to_param, resource_class: "member" }, format: :json
+      expect(response).to have_http_status(403)
+      expect(fee_option.reload.resource_class).to eq("fee")
+    end
+
+    it "forbids updating non-fee options" do
+      member_option = create(:invoice_option, resource_class: "member")
+      put :update, params: { id: member_option.to_param, quantity: 2 }, format: :json
+      expect(response).to have_http_status(403)
     end
   end
 end

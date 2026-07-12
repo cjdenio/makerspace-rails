@@ -13,7 +13,14 @@ class Billing::BraintreeController < ApplicationController
   end
 
   private
+
   def validate_notification
-    @notification = @gateway.webhook_notification.parse(params[:bt_signature], params[:bt_payload])
+    @notification = @gateway.webhook_notification.parse(
+      params[:bt_signature],
+      params[:bt_payload]
+    )
+  rescue Braintree::InvalidSignature => e
+    Rails.logger.warn "[Braintree] Invalid signature - possible rogue webhook: #{e.message}"
+    render json: { error: "Invalid signature" }, status: :unauthorized and return
   end
 end

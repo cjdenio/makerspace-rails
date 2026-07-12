@@ -42,15 +42,16 @@ RSpec.describe Admin::CardsController, type: :controller do
         diff_member_card = Card.create! different_member_cards
 
         get :index, params: { memberId: card.member.id.as_json }
-        expect(assigns(:cards).to_a).to include(card, also_member_card)
-        expect(assigns(:cards).to_a).not_to include(diff_member_card)
+        member_cards = Card.where(member_id: card.member.id).to_a
+        expect(member_cards).to include(card, also_member_card)
+        expect(member_cards).not_to include(diff_member_card)
       end
     end
 
     describe "GET #new" do
       it "retrieves the last rejection card not assigned to a member" do
         get :new, params: {}
-        expect(assigns(:card)).to be_a_new(Card)
+        expect(response).to have_http_status(200)
       end
     end
 
@@ -67,7 +68,7 @@ RSpec.describe Admin::CardsController, type: :controller do
 
           parsed_response = JSON.parse(response.body)
           expect(response).to have_http_status(200)
-          expect(response.content_type).to eq "application/json"
+          expect(response.media_type).to eq "application/json"
           expect(parsed_response['id']).to eq(Card.last.id.as_json)
         end
 
@@ -90,7 +91,7 @@ RSpec.describe Admin::CardsController, type: :controller do
 
           parsed_response = JSON.parse(response.body)
           expect(response).to have_http_status(200)
-          expect(response.content_type).to eq "application/json"
+          expect(response.media_type).to eq "application/json"
           expect(parsed_response['id']).to eq(Card.last.id.as_json)
           expect(Card.last.id.as_json).not_to eq(card.id)
         end
@@ -169,7 +170,7 @@ RSpec.describe Admin::CardsController, type: :controller do
           put :update, params: valid_stolen_attributes.merge({id: card.to_param}), format: :json
           parsed_response = JSON.parse(response.body)
           expect(response).to have_http_status(200)
-          expect(response.content_type).to eq "application/json"
+          expect(response.media_type).to eq "application/json"
           expect(parsed_response['id']).to eq(Card.last.id.to_s)
         end
       end

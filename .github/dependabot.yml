@@ -1,0 +1,31 @@
+version: 2
+
+updates:
+  # ── Ruby / Bundler ──────────────────────────────────────────────────────────
+  - package-ecosystem: bundler
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    # Group patch and minor bumps together to reduce PR noise.
+    # Major version bumps (Rails, Mongoid, Devise, etc.) open individually
+    # so they can be reviewed and tested in isolation.
+    groups:
+      patch-updates:
+        update-types:
+          - patch
+      minor-updates:
+        update-types:
+          - minor
+
+  # ── GitHub Actions ──────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies

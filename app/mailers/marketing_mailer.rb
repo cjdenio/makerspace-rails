@@ -2,11 +2,7 @@ class MarketingMailer < ApplicationMailer
   after_action :prevent_unwanted_send
 
   def prevent_unwanted_send
-    prevent_mail = Member.find_by(email: mail.to, silence_emails: true)
-    
-    if !!prevent_mail
-      mail.perform_deliveries = false
-    end
+    mail.perform_deliveries = false if delivery_recipient_member&.silence_emails
   end
 
   # Ask users that aren't members to sign up

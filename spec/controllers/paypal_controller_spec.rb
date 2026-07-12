@@ -23,8 +23,9 @@ RSpec.describe PaypalController, type: :controller do
     context "with valid params" do
       before(:each) do
         member
-        Redis.current.flushall
+        REDIS.flushall
         sleep(5.seconds)
+        allow(::PayPal::SDK::Core::API::IPN).to receive(:valid?).and_return(true)
       end 
       it "creates a new Paypal" do
         expect {
@@ -34,8 +35,8 @@ RSpec.describe PaypalController, type: :controller do
 
       it "assigns a newly created paypal as @paypal" do
         post :notify, params: valid_attributes, format: :json
-        expect(assigns(:payment)).to be_a(Payment)
-        expect(assigns(:payment)).to be_persisted
+        expect(Payment.last).to be_a(Payment)
+        expect(Payment.last).to be_persisted
       end
 
       it "Sends a notification to Slack" do
@@ -45,7 +46,7 @@ RSpec.describe PaypalController, type: :controller do
 
       it "Attributes the correct member to the payment" do
         post :notify, params: valid_attributes, format: :json
-        expect(assigns(:payment).member).to eq(member)
+        expect(Payment.last.member).to eq(member)
       end
 
       it "Updates member to subscription for correct txn_type" do
@@ -75,9 +76,9 @@ RSpec.describe PaypalController, type: :controller do
         expect {
           post :notify, params: valid_attributes, format: :json
         }.to have_enqueued_job
-        messages = Redis.current.mget(*Redis.current.keys)
+        messages = REDIS.mget(*REDIS.keys)
         sorted_messages = messages.sort_by { |payload| Time.parse(JSON.load(payload)["timestamp"]) }
-        expect(JSON.load(sorted_messages.last)["message"]).to include("Txn is already taken")
+        expect(JSON.load(sorted_messages.last)["message"]).to include("already been taken")
       end
     end
   end

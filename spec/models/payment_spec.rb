@@ -33,6 +33,18 @@ RSpec.describe Payment, type: :model do
       expect(email_payment.member).to eq(email_member)
     end
     
+    it "does not associate a member or change subscription for an invalid duplicate transaction" do
+      member = create(:member, firstname: "Test", lastname: 'Member', subscription: false)
+      create(:payment, :sub_cancel, txn_id: 'duplicate-txn-id', lastname: 'Member')
+      member.update!(subscription: false)
+
+      duplicate_payment = build(:payment, :sub_payment, txn_id: 'duplicate-txn-id', lastname: 'Member')
+
+      expect(duplicate_payment).not_to be_valid
+      expect(duplicate_payment.member).to be_nil
+      expect(member.reload.subscription).to be_falsey
+    end
+
     it "Properly sets subscription based on subscription_status" do
       member = create(:member, firstname: "Test", lastname: 'Member')
       sleep(5.seconds)
