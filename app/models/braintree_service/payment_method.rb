@@ -29,6 +29,8 @@ class BraintreeService::PaymentMethod < Braintree::PaymentMethodNonce
       normalized_payment_method = ::BraintreeService::CreditCard._new(gateway, instance_to_hash(payment_method))
     elsif payment_method.kind_of?(Braintree::PayPalAccount)
       normalized_payment_method = ::BraintreeService::PaypalAccount._new(gateway, instance_to_hash(payment_method))
+    elsif payment_method.kind_of?(Braintree::VenmoAccount)
+      normalized_payment_method = ::BraintreeService::VenmoAccount._new(gateway, instance_to_hash(payment_method))
     end
     normalized_payment_method ||= payment_method
   end

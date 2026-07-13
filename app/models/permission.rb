@@ -1,7 +1,7 @@
 class Permission
   include Mongoid::Document
 
-  field :name, type: Symbol
+  field :name, type: String
   field :enabled, type: Boolean, default: false
 
   validates :name, presence: true

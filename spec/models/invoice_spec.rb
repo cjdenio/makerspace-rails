@@ -84,22 +84,22 @@ RSpec.describe Invoice, type: :model do
         expect(second_invoice).to_not be_valid
       end
 
-      it "cleans up unused member invoices if non subscription" do 
+      it "prevents duplicate unused member invoices without deleting the existing invoice" do
         first_invoice = create(
           :invoice, 
           member: member, 
           resource_id: member.id, 
           resource_class: "member",
         )
-        second_invoice = create(
+        second_invoice = build(
           :invoice, 
           member: member, 
           resource_id: member.id, 
           resource_class: "member"
         )
+        expect(second_invoice).to_not be_valid
         expect(Invoice.where(resource_id: member.id).size).to eq(1)
-        expect(Invoice.find(first_invoice.id)).to be_nil
-        expect(Invoice.find(second_invoice.id)).to be_truthy
+        expect(Invoice.find(first_invoice.id)).to be_truthy
       end
 
       it "does not restrict to one per rental" do
@@ -263,7 +263,7 @@ RSpec.describe Invoice, type: :model do
       describe "Cancel by invoice" do
         it "Notifies the member and management of the cancellation" do
           expect(SlackUser).to receive(:find_by).with({ member_id: member.id }).and_return(SlackUser.new())
-          expect(paid_invoice).to receive(:enque_message).twice
+          expect(::Service::SlackConnector).to receive(:send_slack_message).twice
           paid_invoice.send_cancellation_notification
         end
 
@@ -271,7 +271,7 @@ RSpec.describe Invoice, type: :model do
           outstanding_rental_invoice
           rental.delete
           expect(SlackUser).to receive(:find_by).with({ member_id: member.id }).and_return(SlackUser.new())
-          expect(outstanding_rental_invoice).to receive(:enque_message).twice
+          expect(::Service::SlackConnector).to receive(:send_slack_message).twice
           outstanding_rental_invoice.send_cancellation_notification
         end
       end
@@ -370,6 +370,37 @@ RSpec.describe Invoice, type: :model do
         invoice.send(:execute_invoice_operation)
         expect(invoice.settled).to be_truthy
       end
+    end
+  end
+
+  describe "#one_active_invoice_per_resource" do
+    let(:member) { create(:member) }
+
+    it "rejects a second active member invoice for the same resource without deleting the first" do
+      first = create(:invoice, member: member, resource_class: "member", resource_id: member.id)
+
+      second = build(:invoice, member: member, resource_class: "member", resource_id: member.id)
+      expect(second).not_to be_valid
+      expect(second.errors[:base]).to include("Cannot create duplicate memberships for same user")
+
+      # Non-destructive — the original invoice must still exist
+      expect(Invoice.find(first.id)).to be_present
+    end
+
+    it "allows a member invoice to be created even if the member has an existing unpaid fee invoice" do
+      # Fee invoices store resource_id == member_id with resource_class: "fee" —
+      # this must not be mistaken for a duplicate membership invoice.
+      create(:invoice, member: member, resource_class: "fee", resource_id: member.id)
+
+      membership_invoice = build(:invoice, member: member, resource_class: "member", resource_id: member.id)
+      expect(membership_invoice).to be_valid
+    end
+
+    it "allows a new member invoice once the previous one is settled" do
+      settled = create(:settled_invoice, member: member, resource_class: "member", resource_id: member.id)
+
+      new_invoice = build(:invoice, member: member, resource_class: "member", resource_id: member.id)
+      expect(new_invoice).to be_valid
     end
   end
 end

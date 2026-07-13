@@ -1,0 +1,6 @@
+build:
+  docker:
+    web: Dockerfile
+  config:
+    REACT_REPO_URL: https://github.com/ManchesterMakerspace/makerspace-react-2026.git
+    REACT_BRANCH: master
