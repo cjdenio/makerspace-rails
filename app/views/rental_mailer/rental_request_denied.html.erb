@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><body>
+<h2>Update on Your Rental Request</h2>
+<p>Hi <%= @member.firstname %>,</p>
+<p>Unfortunately your rental request for <strong><%= @rental.number %></strong> was not approved at this time.</p>
+<% if @reason.present? %>
+<p><strong>Reason:</strong> <%= @reason %></p>
+<% end %>
+<p>If you have questions please contact us at contact@manchestermakerspace.org.</p>
+<p>Thank you,<br>Manchester Makerspace</p>
+</body></html>

@@ -1,0 +1,78 @@
+# Slack OAuth scope fragment for the API calls currently made by this Rails app.
+#
+# Paste `oauth_config` into a Slack app manifest, or use this list when
+# configuring OAuth & Permissions. Reinstall the app after changing scopes.
+#
+# This file intentionally enables ordinary bot scopes only. Calls that require
+# an admin/user token are documented and commented out below.
+#
+# Configure SLACK_BOT_TOKEN for these bot scopes. If it is absent, the Rails
+# app falls back to SLACK_ADMIN_TOKEN for ordinary API calls. When both tokens
+# exist, only explicitly privileged calls use SLACK_ADMIN_TOKEN.
+
+oauth_config:
+  scopes:
+    bot:
+      # canvases.create, canvases.edit, canvases.access.set
+      - canvases:write
+
+      # conversations.info and conversations.list for public shop channels
+      - channels:read
+
+      # conversations.invite and conversations.kick for public tool channels
+      - channels:manage
+      - channels:write.invites
+
+      # chat.postMessage, chat.update, and chat.delete
+      - chat:write
+
+      # The app supplies username and icon_emoji to chat.postMessage.
+      - chat:write.customize
+
+      # The app posts to configured public channels without first joining them.
+      - chat:write.public
+
+      # /reserve and /checkout slash commands
+      - commands
+
+      # conversations.info and conversations.list for private shop channels
+      - groups:read
+
+      # conversations.invite and conversations.kick for private tool channels
+      - groups:write
+      - groups:write.invites
+
+      # pins.add
+      - pins:write
+
+      # team.info
+      - team:read
+
+      # users.info and users.list
+      - users:read
+
+      # users.lookupByEmail and email fields returned by users.info/users.list
+      - users:read.email
+
+    # views.open is also called, but Slack does not require an OAuth scope for
+    # that method; it requires a valid, unexpired interaction trigger instead.
+
+    # Admin/user-token scopes are intentionally disabled.
+    #
+    # The deployed SLACK_ADMIN_TOKEN must be a user token, not a bot token, to
+    # execute these calls. The token owner must also have the Slack role and
+    # plan required by the target workspace.
+    #
+    # user:
+    #   # team.billableInfo and the undocumented legacy
+    #   # users.admin.invite/users.admin.setInactive calls.
+    #   - admin
+    #
+    #   # users.profile.set requires a user token. Because the Rails app passes
+    #   # `user:` to edit another member's profile, the token owner must be an
+    #   # eligible Slack administrator on a paid plan.
+    #   - users.profile:write
+    #
+    # If the legacy users.admin calls are migrated to the documented Enterprise
+    # admin.users.invite/admin.users.remove APIs, use this user scope instead:
+    #   - admin.users:write

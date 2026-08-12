@@ -22,3 +22,19 @@
 every :day, at: '2am' do
   rake "db:backup"
 end
+
+every :day, at: '7am' do
+  runner "SlackProfileSyncJob.perform_later"
+end
+
+every 1.month, at: '3:15am' do
+  rake "slack:refresh_public_channel_cache"
+end
+
+every 1.hour do
+  runner "MemberProvisioningReconciliationJob.perform_now"
+end
+
+every '0 8 1 * *' do
+  runner 'CardExpirationCheckJob.perform_later'
+end

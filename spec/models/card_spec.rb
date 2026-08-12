@@ -54,6 +54,28 @@ RSpec.describe Card, type: :model do
         rejection_card.reload
         expect(rejection_card.holder).to eq(member.fullname)
       end
+
+      it "activates a pending member when their card is issued" do
+        pending_member = create(:member, :current, status: 'pending')
+
+        issued_card = create(:card, member: pending_member)
+
+        expect(pending_member.reload.status).to eq('activeMember')
+        expect(issued_card.reload.validity).to eq('activeMember')
+      end
+
+      it "activates a pending member without rerunning member validations after card insertion" do
+        pending_member = create(:member, :current, status: 'pending')
+        allow_any_instance_of(EmailDeliverabilityValidator).to receive(:validate_each) do |_validator, record, attribute, _value|
+          record.errors.add(attribute, 'is no longer deliverable')
+        end
+
+        expect do
+          create(:card, member: pending_member, uid: SecureRandom.hex(6))
+        end.to change(Card, :count).by(1)
+
+        expect(pending_member.reload.status).to eq('activeMember')
+      end
     end
 
     describe "on update" do

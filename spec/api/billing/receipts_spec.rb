@@ -3,6 +3,7 @@ require 'swagger_helper'
 describe 'Billing::Receipts API', type: :request do
   let(:customer) { create(:member, customer_id: "foo") }
   let(:non_customer) { create(:member) }
+  let(:unauthorized_customer) { create(:member, customer_id: "bar") }
   let(:gateway) { double }
   let(:invoice) { create(:invoice, member: customer, id: "foobar", transaction_id: "t1")}
   let(:transaction) { build(:transaction, invoice: invoice, id: "t1") }
@@ -39,6 +40,13 @@ describe 'Billing::Receipts API', type: :request do
         before { sign_in non_customer }
         schema '$ref' => '#/components/schemas/error'
         let(:id) { create(:invoice).id }
+        run_test!
+      end
+
+      response '403', 'Billing permission disabled' do
+        before { sign_in unauthorized_customer }
+        schema '$ref' => '#/components/schemas/error'
+        let(:id) { invoice.id }
         run_test!
       end
 

@@ -1,6 +1,22 @@
 require 'swagger_helper'
 
 describe 'InvoiceOptions API', type: :request do
+  path '/invoice_options/signup' do
+    get 'Gets invoice options eligible for signup' do
+      tags 'InvoiceOptions'
+      operationId "listSignupInvoiceOptions"
+      produces 'application/json'
+
+      response '200', 'signup invoice options found' do
+        schema type: :array,
+            items: { '$ref' => '#/components/schemas/InvoiceOption' }
+
+        let!(:invoice_option) { create(:invoice_option, plan_id: "signup-plan") }
+        run_test!
+      end
+    end
+  end
+
   path '/invoice_options' do 
     get 'Gets a list of invoice_options' do 
       tags 'InvoiceOptions'

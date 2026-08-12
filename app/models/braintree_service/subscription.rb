@@ -7,9 +7,26 @@ class BraintreeService::Subscription < Braintree::Subscription
   attr_accessor :resource, :member
 
   def self.get_subscriptions(gateway, search_query = nil)
-     subscriptions = gateway.subscription.search { |search| search_query && search_query.call(search) }
-     subscriptions.map do |subscription|
-      normalize_subscription(gateway, subscription)
+    begin
+      Timeout::timeout(25) do
+        subscriptions = gateway.subscription.search { |search| search_query && search_query.call(search) }
+        # Braintree::ResourceCollection#first does not accept an argument (gem 2.94.0).
+        # Use each with a break instead — fetches IDs in one call, then fetches
+        # the first page of 50 records and stops, preventing H12 timeout.
+        results = []
+        subscriptions.each do |subscription|
+          results << normalize_subscription(gateway, subscription)
+          break if results.length >= 50
+        end
+        results
+      end
+    rescue Timeout::Error => e
+      ::Service::SlackConnector.send_slack_message(
+        "⚠️ Braintree subscription search timed out after 25s. Error: #{e.message}",
+        ::Service::SlackConnector.logs_channel
+      )
+      Honeybadger.notify(e) if defined?(Honeybadger)
+      raise ::Error::UnprocessableEntity.new("Braintree request timed out. Please try again.")
     end
   end
 
@@ -47,6 +64,28 @@ class BraintreeService::Subscription < Braintree::Subscription
       raise ::Error::UnprocessableEntity.new("Subscription already exists for #{invoice.resource_name}. Please contact support")
     end
 
+    # Block subscription creation if the member has outstanding past-due invoices.
+    # This prevents members from subscribing while owing unpaid shop fees or
+    # prior membership charges.
+    member = invoice.member
+    if member
+      outstanding_count = Invoice.where(
+        member_id:      member.id,
+        settled_at:     nil,
+        transaction_id: nil
+      ).where(
+        :due_date.lt => Time.now,
+        :id.ne       => invoice.id
+      ).count
+
+      if outstanding_count > 0
+        raise ::Error::UnprocessableEntity.new(
+          "You have #{outstanding_count} outstanding past-due invoice#{'s' if outstanding_count > 1}. " \
+          "Please settle all outstanding invoices before starting a new subscription."
+        )
+      end
+    end
+
     subscription_hash = {
       payment_method_token: invoice.payment_method_id,
       plan_id: invoice.plan_id,
@@ -81,6 +120,10 @@ class BraintreeService::Subscription < Braintree::Subscription
 
   private
   def self.normalize_subscription(gateway, subscription)
+      if subscription.transactions.present?
+        subscription.transactions.first.disputes.push(Braintree::Dispute._new(date_opened: Date.today.to_s, received_date: Date.today.to_s))
+      end
+
       self.new(gateway, instance_to_hash(subscription))
   end
 
@@ -90,6 +133,8 @@ class BraintreeService::Subscription < Braintree::Subscription
       @resource = Invoice.resource(resource_class, resource_id)
       set_member unless @resource.nil?
     end
+    set_resource_from_subscription_id if @resource.nil?
+    set_member unless @resource.nil? || @member
   end
 
   def set_member
@@ -98,5 +143,11 @@ class BraintreeService::Subscription < Braintree::Subscription
     else
       @member = resource.member
     end
+  end
+
+  def set_resource_from_subscription_id
+    @resource = Member.find_by(subscription_id: id) ||
+                Rental.find_by(subscription_id: id) ||
+                Group.find_by(subscription_id: id)
   end
 end

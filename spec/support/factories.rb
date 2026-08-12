@@ -23,6 +23,8 @@ FactoryBot.define do
     address_city { "Boston" }
     address_state { "MA" }
     address_postal_code { "90210" }
+    startDate            { rand(1..48).months.ago }
+    subscription         { false }
 
     trait :expired do
       after(:build) do |member|
@@ -42,6 +44,16 @@ FactoryBot.define do
     trait :admin do
       after(:build) do |member|
         member.role = 'admin'
+      end
+    end
+    trait :resource_manager do
+      after(:build) do |member|
+        member.role = 'resource_manager'
+      end
+    end
+    trait :board_member do
+      after(:build) do |member|
+        member.role = 'board_member'
       end
     end
     trait :inactive do
@@ -90,10 +102,11 @@ FactoryBot.define do
   end
 
   factory :group do
-    member
-    active_members { build_list :member, 5 }
-    groupName { generate(:group_name) }
+    association :member
+    groupRep { member.fullname }
+    groupName { member.id.to_s }
     expiry { generate(:expiry) }
+    to_create { |g| g.save(validate: false) }
   end
 
   factory :rejection_card do
@@ -156,7 +169,10 @@ FactoryBot.define do
 
   factory :earned_membership do
     association :member
-    after(:build) do |earned_membership|
+    # requirements_exist validation fires before after(:create) adds requirements
+    # Use to_create to skip validation on initial save, then add requirements
+    to_create { |em| em.save(validate: false) }
+    after(:create) do |earned_membership|
       FactoryBot.create_list(:requirement, 2, earned_membership: earned_membership)
     end
   end
@@ -314,8 +330,8 @@ FactoryBot.define do
     status { ::Braintree::Subscription::Status::Active }
     price { "65.00" }
     next_billing_period_amount { "65.00" }
-    first_billing_date { Time.now }
-    next_billing_date { Time.now + 1.month }
+    first_billing_date { Time.now.to_s }
+    next_billing_date { (Time.now + 1.month).to_s }
     transactions { [] }
     add_ons { [] }
     discounts { [] }
@@ -323,8 +339,8 @@ FactoryBot.define do
     failure_count { 0 }
     days_past_due { 0 }
     billing_day_of_month { "10" }
-    billing_period_end_date { Time.now + 1.month }
-    billing_period_start_date { Time.now }
+    billing_period_end_date { (Time.now + 1.month).to_s }
+    billing_period_start_date { Time.now.to_s }
     payment_method_token { "g7291" }
 
     initialize_with { new(braintree_gateway, attributes) }
@@ -385,6 +401,75 @@ FactoryBot.define do
     kind { Braintree::WebhookNotification::Kind::SubscriptionChargedSuccessfully }
     timestamp { Time.now }
     payload { JSON.generate(build(:subscription)) }
+  end
+  factory :mailtrap_event do
+    transient do
+      member { create(:member) }
+    end
+
+    email { member.email }
+    status { "delivery" }
+    occurred_at { Time.utc(2026, 4, 24, 12, 0, 0) }
+    message_id { generate(:uid) }
+    event_id { generate(:uid) }
+    event { "delivery" }
+    timestamp { occurred_at.to_i }
+
+    after(:build) do |mailtrap_event, evaluator|
+      mailtrap_event.member_id ||= evaluator.member.id
+    end
+  end
+
+  factory :shop do
+    sequence(:name) { |n| "Shop #{n}" }
+    disabled { false }
+    reservable { true }
+    max_concurrent_reservations { 1 }
+    reservation_horizon_days { 7 }
+    max_reservation_duration_hours { 8 }
+  end
+
+  factory :tool do
+    sequence(:name) { |n| "Tool #{n}" }
+    association :shop
+    disabled { false }
+    reservable { true }
+    max_concurrent_reservations { 1 }
+    reservation_horizon_days { 7 }
+    max_reservation_duration_hours { 8 }
+  end
+
+  factory :tool_checkout do
+    association :member
+    association :tool
+    checked_out_at { Time.current }
+  end
+
+  factory :checkout_approver do
+    association :member
+    shop_ids { [] }
+    tool_ids { [] }
+  end
+
+  factory :reservation do
+    association :member
+    association :shop
+    title { "Project time" }
+    reservation_scope { "shop" }
+    tool_ids { [] }
+    start_at { 1.day.from_now.change(min: 0, sec: 0) }
+    end_at { 1.day.from_now.change(min: 0, sec: 0) + 1.hour }
+    status { "approved" }
+  end
+
+  factory :reservation_blackout do
+    association :shop
+    association :created_by, factory: [:member, :current]
+    title { "Open House" }
+    recurrence { "weekly" }
+    weekday { 1 }
+    start_time { "17:00" }
+    end_time { "20:00" }
   end
 
   factory :dispute_notification, parent: :notification do

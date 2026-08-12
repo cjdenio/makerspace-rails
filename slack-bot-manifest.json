@@ -1,0 +1,43 @@
+{
+  "_metadata": {
+    "major_version": 2,
+    "minor_version": 1
+  },
+  "display_information": {
+    "name": "Makerspace Member Portal",
+    "description": "Member Portal notifications, commands, channel access, and reservation canvases.",
+    "background_color": "#1f4e79"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "MemberPortalBot",
+      "always_online": false
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "canvases:write",
+        "channels:manage",
+        "channels:read",
+        "channels:write.invites",
+        "chat:write",
+        "chat:write.customize",
+        "chat:write.public",
+        "commands",
+        "groups:read",
+        "groups:write",
+        "groups:write.invites",
+        "pins:write",
+        "team:read",
+        "users:read",
+        "users:read.email"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

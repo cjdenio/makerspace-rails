@@ -3,7 +3,10 @@ namespace :volunteering do
   task :update_activity => :environment do  
     begin
       right_now = Time.now.utc
-      active_members = Member.where(expirationTime: { "$gte" => (right_now.to_i * 1000) }, status: "activeMember").pluck(:id)
+      active_members = Member.where(
+        expirationTime: { "$gte" => (right_now.to_i * 1000) },
+        :status.in => Member::ACTIVE_MEMBERSHIP_STATUSES
+      ).pluck(:id)
       MembershipSnapshot.create!(date: right_now.to_date, active_members: active_members)
       ::Service::SlackConnector.send_slack_message("Membership snapshot saved. We have #{active_members.size} active members", ::Service::SlackConnector.logs_channel)
     rescue => e

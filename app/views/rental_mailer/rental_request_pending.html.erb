@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><body>
+<h2>New Rental Request Pending Approval</h2>
+<p>A member has requested a rental spot that requires admin approval.</p>
+<table>
+  <tr><td><strong>Member:</strong></td><td><%= @member.fullname %></td></tr>
+  <tr><td><strong>Email:</strong></td><td><%= @member.email %></td></tr>
+  <tr><td><strong>Spot:</strong></td><td><%= @spot.number %></td></tr>
+  <tr><td><strong>Location:</strong></td><td><%= @spot.location %></td></tr>
+  <tr><td><strong>Type:</strong></td><td><%= @spot.rental_type&.display_name %></td></tr>
+  <% if @rental.notes.present? %>
+  <tr><td><strong>Member Notes:</strong></td><td><%= @rental.notes %></td></tr>
+  <% end %>
+  <% if @spot.invoice_option %>
+  <tr><td><strong>Monthly Cost:</strong></td><td>$<%= @spot.invoice_option.amount %></td></tr>
+  <% end %>
+</table>
+<p>Please log in to the admin portal to approve or deny this request.</p>
+<p>— Manchester Makerspace</p>
+</body></html>

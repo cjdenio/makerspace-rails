@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= @agenda[:toolName].present? ? "#{@agenda[:shopName]}: #{@agenda[:toolName]}" : @agenda[:shopName] %> Reservations</title>
+  <style>
+    body { background: #0d1117; color: #e6edf3; font-family: Arial, sans-serif; margin: 0; padding: 2rem; }
+    main { margin: 0 auto; max-width: 1100px; position: relative; }
+    h1 { color: #e85d04; margin-bottom: .4rem; padding-right: 3rem; }
+    h2 { color: #f0f0f0; font-size: 1.2rem; margin-top: .4rem; }
+    .window { color: #8b949e; margin-bottom: 1.5rem; }
+    table { background: #161b22; border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #30363d; padding: .75rem; text-align: left; }
+    th { background: #21262d; color: #8b949e; }
+    .empty { color: #8b949e; padding: 2rem; text-align: center; }
+    .progress { color: #58a6ff; font-weight: bold; }
+    .agenda-menu { position: absolute; right: 0; top: 0; z-index: 2; }
+    .agenda-menu summary { cursor: pointer; font-size: 1.8rem; list-style: none; padding: .25rem .5rem; }
+    .agenda-menu summary::-webkit-details-marker { display: none; }
+    .agenda-menu nav { background: #21262d; border: 1px solid #30363d; border-radius: 6px; min-width: 210px; padding: .4rem; }
+    .agenda-menu a { color: #e6edf3; display: block; padding: .6rem .75rem; text-decoration: none; }
+    .agenda-menu a:hover { background: #30363d; }
+  </style>
+</head>
+<body>
+  <main>
+    <details class="agenda-menu">
+      <summary aria-label="Select agenda" title="Select agenda">☰</summary>
+      <nav>
+        <% common_query = { shop: @agenda[:shopName] } %>
+        <% common_query[:token] = params[:token] if params[:token].present? %>
+        <a href="/reservations/agenda?<%= common_query.to_query %>">Entire shop</a>
+        <% @agenda_tools.each do |tool| %>
+          <a href="/reservations/agenda?<%= common_query.merge(tool: tool.name).to_query %>"><%= tool.name %></a>
+        <% end %>
+      </nav>
+    </details>
+    <h1><%= @agenda[:toolName].present? ? "#{@agenda[:shopName]}: #{@agenda[:toolName]}" : @agenda[:shopName] %></h1>
+    <% if @agenda[:toolName].present? && @agenda[:upNext].present? %>
+      <% next_name = @agenda[:upNext][:slackUsername].present? ? "@#{@agenda[:upNext][:slackUsername]}" : @agenda[:upNext][:memberName] %>
+      <h2>Up Next <%= next_name %> at <%= Time.iso8601(@agenda[:upNext][:startAt]).in_time_zone(ReservationService::ZONE).strftime("%H:%M") %></h2>
+    <% end %>
+    <div class="window">Upcoming 24 hours from <%= Time.iso8601(@agenda[:windowStart]).in_time_zone(ReservationService::ZONE).strftime("%b %-d, %Y %H:%M %Z") %></div>
+
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Title</th><th>Member</th><th>Slack</th><th>Resources</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <% if @agenda[:reservations].empty? %>
+          <tr><td class="empty" colspan="6">No reservations in the next 24 hours.</td></tr>
+        <% else %>
+          <% @agenda[:reservations].each do |reservation| %>
+            <% start_at = Time.iso8601(reservation[:startAt]).in_time_zone(ReservationService::ZONE) %>
+            <% end_at = Time.iso8601(reservation[:endAt]).in_time_zone(ReservationService::ZONE) %>
+            <tr>
+              <td><%= "#{start_at.strftime('%b %-d %H:%M')}–#{end_at.strftime('%b %-d %H:%M')}" %></td>
+              <td><%= reservation[:title] %></td>
+              <td><%= reservation[:memberName] %></td>
+              <td><%= reservation[:slackUsername].present? ? "@#{reservation[:slackUsername]}" : "—" %></td>
+              <td><%= reservation[:reservationScope] == "shop" ? "Entire shop" : reservation[:toolNames].join(", ") %></td>
+              <td class="<%= reservation[:inProgress] ? 'progress' : '' %>"><%= reservation[:inProgress] ? "In progress · " : "" %><%= reservation[:status].titleize %></td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

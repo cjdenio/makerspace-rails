@@ -99,6 +99,7 @@ module Service
 
         values_range = ::Google::Apis::SheetsV4::ValueRange.new(values: [new_row])
         @drive.append_spreadsheet_value(ENV["VOLUNTEER_SPREADSHEET"], ["A1:AAA1"], values_range, value_input_option: "USER_ENTERED")  do |result, err|
+          report_google_error(err, "sheets.values.append") if err
           raise Error::Google::Upload.new(err) unless err.nil?
         end
       end
@@ -126,6 +127,7 @@ module Service
         value = [value] unless value.is_a?(Array)
         values_range = ::Google::Apis::SheetsV4::ValueRange.new(values: [value])
         @drive.update_spreadsheet_value(ENV["VOLUNTEER_SPREADSHEET"], [range], values_range, value_input_option: "RAW" ) do |result, err|
+          report_google_error(err, "sheets.values.update") if err
           raise Error::Google::Upload.new(err) unless err.nil?
         end
       end
@@ -133,7 +135,12 @@ module Service
       # Search ID column and return full member row
       def get_row_by_member_id(member_id)
         member_id_str = member_id_as_str(member_id)
-        @member_ids ||= @drive.get_spreadsheet_values(ENV["VOLUNTEER_SPREADSHEET"], get_column(ID_INDEX)).values.flatten
+        @member_ids ||= with_google_reporting("sheets.values.get_member_ids") do
+          @drive.get_spreadsheet_values(
+            ENV["VOLUNTEER_SPREADSHEET"],
+            get_column(ID_INDEX)
+          ).values.flatten
+        end
         member_index = @member_ids.find_index { |id| id == member_id_str }
         if member_index.nil? # If member doesnt exist for some reason, add them to the bottom and search again
           add_to_spreadsheet(member_id_str)
@@ -145,7 +152,12 @@ module Service
         return {
           row_index: member_index,
           row_range: get_row(member_index),
-          row: @drive.get_spreadsheet_values(ENV["VOLUNTEER_SPREADSHEET"], get_row(member_index)).values.flatten
+          row: with_google_reporting("sheets.values.get_member_row") do
+            @drive.get_spreadsheet_values(
+              ENV["VOLUNTEER_SPREADSHEET"],
+              get_row(member_index)
+            ).values.flatten
+          end
         }
       end
 
@@ -154,7 +166,27 @@ module Service
       end
 
       def get_headers
-        @headers ||= @drive.get_spreadsheet_values(ENV["VOLUNTEER_SPREADSHEET"], get_row(0)).values.flatten
+        @headers ||= with_google_reporting("sheets.values.get_headers") do
+          @drive.get_spreadsheet_values(
+            ENV["VOLUNTEER_SPREADSHEET"],
+            get_row(0)
+          ).values.flatten
+        end
+      end
+
+      def report_google_error(error, operation)
+        Service::GoogleApiErrorReporter.report_if_permission_denied(
+          error,
+          operation: operation,
+          resource_type: "GoogleSheets"
+        )
+      end
+
+      def with_google_reporting(operation)
+        yield
+      rescue Google::Apis::Error => error
+        report_google_error(error, operation)
+        raise
       end
     end
   end

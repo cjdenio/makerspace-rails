@@ -7,8 +7,22 @@ class Admin::PermissionsController < AdminController
   end
 
   def update
+    before = @member.get_permissions
     @member.update_permissions(update_params)
     @member.reload
+
+    ::Service::AuditLogger.log(
+      log_type:        'member',
+      event_type:      'permissions_updated',
+      resource_type:   'Member',
+      resource_id:     @member.id,
+      actor:           current_member,
+      subject:         @member,
+      before_snapshot: { permissions: before },
+      after_snapshot:  { permissions: @member.get_permissions },
+      slack_channel:   ::Service::SlackConnector.logs_channel
+    )
+
     render json: @member, adapter: :attributes and return
   end
 

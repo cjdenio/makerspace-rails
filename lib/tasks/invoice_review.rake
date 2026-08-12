@@ -13,7 +13,7 @@ task :invoice_review => :environment do
       pending_settlement = Service::Analytics::Invoices.query_settlement_pending()
 
       def build_member_url(member_id)
-        base_url = ActionMailer::Base.default_url_options[:host]
+        base_url = Rails.configuration.x.app_base_url
         member = Member.find(member_id)
         "<#{base_url}/members/#{member.id}|#{member.fullname}>"
       end

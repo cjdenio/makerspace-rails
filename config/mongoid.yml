@@ -45,6 +45,6 @@ production:
 test:
   clients:
     default:
-      uri: <%=ENV['MLAB_URI']%>
+      uri: <%= ENV['MLAB_URI'].to_s + ENV['TEST_ENV_NUMBER'].to_s %>
   options:
     raise_not_found_error: false

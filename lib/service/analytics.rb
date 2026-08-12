@@ -50,7 +50,7 @@ module Service
       end
 
       def self.query_good_standing_members(base = query_not_landlord)
-        base.where(status: "activeMember")
+        base.where(:status.in => Member::ACTIVE_MEMBERSHIP_STATUSES)
       end
 
       def self.get_membership_lengths(base = query_not_landlord.where(:expirationTime.ne => nil))

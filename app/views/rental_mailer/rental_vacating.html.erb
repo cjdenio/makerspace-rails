@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><body>
+<h2>Rental Cancellation Confirmed</h2>
+<p>Hi <%= @member.firstname %>,</p>
+<p>We've received your cancellation request for rental <strong><%= @rental.number %></strong>.</p>
+<p>Since you indicated you have not yet vacated the space, your rental will remain active until <strong><%= @expiry %></strong>. Please ensure you have removed all belongings by that date.</p>
+<p>No further charges will be made after your current rental period ends.</p>
+<p>If you have any questions please contact us at contact@manchestermakerspace.org.</p>
+<p>— Manchester Makerspace</p>
+</body></html>

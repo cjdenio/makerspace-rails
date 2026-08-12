@@ -3,11 +3,14 @@ class ApplicationController < ActionController::Base
   include ::Error::ErrorHandler
   include SlackService
   include SetCurrentRequestDetails
+  include ActionView::Helpers::SanitizeHelper
 
   protect_from_forgery with: :exception
   after_action :set_csrf_cookie_for_ng
+  after_action :log_not_found_file_lookup_context, if: -> { response.status == 404 }
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :filter_requests
+  before_action :require_completed_totp_challenge
   before_action :allow_only_html_requests, only: [:application]
 
   def application
@@ -19,9 +22,39 @@ class ApplicationController < ActionController::Base
   end
 
   protected
+
+  def log_not_found_file_lookup_context
+    return if @logged_not_found_file_lookup_context
+
+    @logged_not_found_file_lookup_context = true
+    Rails.logger.info(
+      "[404 file lookup] requested_path=#{request.path} " \
+      "translated_locations=#{translated_file_lookup_locations.join(', ')}"
+    )
+  rescue => e
+    Rails.logger.warn("Failed to log 404 file lookup context: #{e.message}")
+  end
+
+  def translated_file_lookup_locations
+    requested_path = request.path.to_s
+    relative_path = requested_path.delete_prefix('/')
+    clean_relative_path = Pathname.new(relative_path).cleanpath.to_s
+    clean_relative_path = '' if clean_relative_path.start_with?('..')
+
+    lookup_roots = [Rails.root.join('public')]
+    if Rails.application.config.respond_to?(:assets)
+      lookup_roots += Array(Rails.application.config.assets.paths)
+    end
+
+    lookup_roots.map do |root|
+      clean_relative_path.present? ? File.join(root.to_s, clean_relative_path) : root.to_s
+    end.uniq
+  end
+
   def allow_only_html_requests
     if params[:format] && params[:format] != "html"
-      render :file => Rails.public_path.join("404.html")
+      Rails.logger.info("[allow_only_html] #{scrub_log_value(params[:format])}.")
+      render plain: "Not Found", status: 404
     end
   end
 
@@ -38,9 +71,105 @@ class ApplicationController < ActionController::Base
     current_member.try(:role) == 'admin'
   end
 
+  def is_resource_manager?
+    current_member.try(:role) == 'resource_manager'
+  end
+
+  def is_board_member?
+    current_member.try(:role) == 'board_member'
+  end
+
+  def is_privileged?
+    is_admin? || is_board_member? || is_resource_manager?
+  end
+
+  def is_valid_checkout_approver?
+    current_member.try(:valid_for_checkout_request?) && CheckoutApprover.exists?(member_id: current_member.id)
+  end
+
+  def can_view_disabled_tools?
+    is_admin? || is_board_member?
+  end
+
+  def manages_shop?(shop_or_id)
+    current_member.try(:manages_shop?, shop_or_id) || false
+  end
+
+  def can_manage_shop?(shop_or_id)
+    is_admin? || is_board_member? || manages_shop?(shop_or_id)
+  end
+
+  def ordinary_checkout_approver_for_tool?(tool)
+    return false unless current_member.try(:valid_for_checkout_request?)
+    return false if tool.nil? || tool.disabled?
+    CheckoutApprover.find_by(member_id: current_member.id).try(:can_approve_tool?, tool) || false
+  end
+
+  def can_approve_checkout_for_tool?(tool)
+    is_admin? || is_board_member? || manages_shop?(tool.try(:shop_id)) ||
+      ordinary_checkout_approver_for_tool?(tool)
+  end
+
+  def managed_shop_ids
+    return Shop.all.pluck(:id).map(&:to_s) if is_admin? || is_board_member?
+    return Array(current_member.resource_manager_shop_ids).map(&:to_s) if is_resource_manager?
+    []
+  end
+
+  def checkout_visible_tool_ids
+    ids = Tool.where(:shop_id.in => managed_shop_ids).pluck(:id).map(&:to_s)
+    if current_member.try(:valid_for_checkout_request?)
+      ids |= CheckoutApprover.allowed_tool_ids_for_member(current_member.id)
+    end
+    ids
+  end
+
   def filter_requests
-    if params[:format] && (/html|json/ =~ params[:format]).nil?
+    if params[:format] && (/js|png|svg|txt|html|json|xml/ =~ params[:format]).nil?
+      Rails.logger.info("[filter_requests] #{scrub_log_value(params[:format])}.")
       raise Error::NotFound.new
     end
+  end
+
+  def scrub_log_value(value)
+    return value unless value.is_a?(String)
+
+    sanitize(normalize_log_value(value))
+  end
+
+  def normalize_log_value(value)
+    normalized_value = value.dup
+    normalized_value.force_encoding(Encoding::UTF_8) if normalized_value.encoding == Encoding::ASCII_8BIT
+    normalized_value = normalized_value.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: '')
+    normalized_value.unicode_normalize
+  rescue Encoding::CompatibilityError, Encoding::InvalidByteSequenceError, Encoding::UndefinedConversionError
+    value.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: '').unicode_normalize
+  end
+
+  def require_completed_totp_challenge
+    return unless request.path.start_with?('/api/')
+    return unless member_signed_in? && session[:totp_pending_member_id].present?
+
+    expire_stale_totp_challenge
+    return unless member_signed_in? && session[:totp_pending_member_id].present?
+    return if totp_challenge_exempt_request?
+
+    render json: { error: 'TOTP verification required.' }, status: :unauthorized
+  end
+
+  def expire_stale_totp_challenge
+    expires_at = session[:totp_pending_expires_at].to_i
+    return if expires_at.zero? || Time.now.to_i <= expires_at
+
+    session.delete(:totp_pending_member_id)
+    session.delete(:totp_pending_expires_at)
+    sign_out(:member)
+  end
+
+  def totp_challenge_exempt_request?
+    return true if controller_path == 'members/totp_sessions' && action_name == 'create'
+    return true if controller_path == 'client_config' && action_name == 'index'
+
+    false
   end
 end

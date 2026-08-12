@@ -12,6 +12,13 @@ class InvoiceOptionsController < ApplicationController
     render_with_total_items(invoice_options, { each_serializer: InvoiceOptionSerializer, adapter: :attributes })
   end
 
+  def signup
+    render_with_total_items(
+      InvoiceOption.signup_eligible,
+      { each_serializer: InvoiceOptionSerializer, adapter: :attributes }
+    )
+  end
+
   def show
     render json: @invoice_option, adapter: :attributes and return
   end

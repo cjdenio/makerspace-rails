@@ -1,24 +1,52 @@
 Rails.application.configure do
 
   # Settings specified here will take precedence over those in config/application.rb.
-
+  config.public_file_server.enabled = true
   # In the development environment your application's code is reloaded on
   # every request. This slows down response time but is perfect for development
   # since you don't have to restart the web server when you make code changes.
   config.cache_classes = false
+  config.hosts << "members.manchestermakerspace.com"
+  config.hosts << "members.manchestermakerspace.org"
+  config.hosts << "makerspace-dev-51ba804d4c30.herokuapp.com"
 
-  # Do not eager load code on boot.
+  #  If an incoming request does not match the allowed domains, Rails blocks it, our APP_DOMAIN must always be a valid host
+  if ENV['APP_DOMAIN']&.empty? == false
+    config.hosts <<  ENV["APP_DOMAIN"]
+  end
+  $stderr.puts "[config] config.hosts=#{Rails.application.config.hosts.inspect}"
+
+  # "False" means "Do not eager load code on boot".
+  # When set to false, Rails relies on lazy loading
+  # (via the Zeitwerk code loader in modern versions) to load files
+  # on-demand only when their respective classes are referenced
+  # for the first time.   Usually set to false in DEV!
   config.eager_load = true
+  #config.eager_load = false
 
   # Show full error reports.
   config.consider_all_requests_local = true
 
-  config.cache_store = :redis_store, {
+  config.cache_store = :redis_cache_store, {
+    url: ENV["REDIS_URL"],
     expires_in: 1.hour,
-    namespace: 'cache',
-    redis: { host: ENV['REDIS_URL'], port: ENV['REDIS_PORT'], db: ENV['REDIS_DB'] }
+    namespace: "cache"
   }
 
+  # require 'syslog/logger'
+  # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new 'app-name')
+
+  if ENV["RAILS_LOG_TO_STDERR"].present?
+    logger           = ActiveSupport::Logger.new(STDERR)
+    logger.formatter = config.log_formatter
+    config.logger = ActiveSupport::TaggedLogging.new(logger)
+  end
+  if ENV["RAILS_LOG_TO_STDOUT"].present?
+    logger           = ActiveSupport::Logger.new(STDOUT)
+    logger.formatter = config.log_formatter
+    config.logger = ActiveSupport::TaggedLogging.new(logger)
+  end
+  
   # # Enable/disable caching. By default caching is disabled.
   # if Rails.root.join('tmp/caching-dev.txt').exist?
   #   config.action_controller.perform_caching = true
@@ -34,24 +62,90 @@ Rails.application.configure do
   # end
 
   config.action_mailer.raise_delivery_errors = true
-  config.action_mailer.default_url_options = { host: "http://#{ENV["APP_DOMAIN"] || "localhost"}", port: ENV["PORT"] || 3002 }
+  config.action_mailer.default_url_options = if ENV['APP_DOMAIN']
+    config.x.app_base_url = AppDomainUrl.base_url(
+      ENV["APP_DOMAIN"],
+      environment: Rails.env
+    )
+    {
+      host: AppDomainUrl.host(ENV["APP_DOMAIN"]),
+      protocol: config.x.app_base_url.split(":", 2).first
+    }
+  else
+    config.x.app_base_url = "http://localhost:#{ENV['PORT'] || 3002}"
+    { host: 'localhost', port: ENV['PORT'] || 3002, protocol: "http" }
+  end
   config.action_mailer.perform_caching = false
-  config.action_controller.asset_host = "#{config.action_mailer.default_url_options[:host]}:#{config.action_mailer.default_url_options[:port]}"
+  # config.action_controller.asset_host = "#{config.action_mailer.default_url_options[:host]}:#{config.action_mailer.default_url_options[:port]}"
   config.action_mailer.asset_host = config.action_controller.asset_host
 
-  if ENV['MAILTRAP_API_TOKEN']
+  # Serving static files from the `/public` folder if enabled.  If not enabled, check for ENV variable
+  if config.public_file_server.enabled
+     $stderr.puts '[config] config.public_file_server.enabled=true'
+  else
+    config.public_file_server.enabled = ENV['RAILS_SERVE_STATIC_FILES'].present?
+    if config.public_file_server.enabled
+      $stderr.puts '[config] RAILS_SERVE_STATIC_FILES=true'
+    else
+      $stderr.puts  '[RAILS_SERVE_STATIC_FILES] WARNING: Will not directly serve static files, hopefully apache or nginx will do it for you!!!'
+    end
+  end
+  
+  if ENV['MAILTRAP_API_TOKEN'].present? && ENV['MAILTRAP_ACCOUNT_ID'].present?
+    begin
+      config.action_mailer.perform_deliveries = true
+      response = RestClient.get(
+        "https://mailtrap.io/api/accounts/#{ENV['MAILTRAP_ACCOUNT_ID']}/inboxes",
+        { Authorization: "Bearer #{ENV['MAILTRAP_API_TOKEN']}" }
+      )
+      parsed = JSON.parse(response)
+      inbox = parsed.is_a?(Array) ? parsed[0] : parsed["inboxes"][0]
+      config.action_mailer.delivery_method = :smtp
+      config.action_mailer.smtp_settings = {
+        :user_name => inbox['username'],
+        :password => inbox['password'],
+        :address => inbox['domain'],
+        :domain => inbox['domain'],
+        :port => 2525,
+        :authentication => :plain
+      }
+      $stderr.puts "[Mailer] Using Mailtrap for email delivery"
+    rescue RestClient::Exception, StandardError => e
+      $stderr.puts "[Mailer] Mailtrap setup failed: #{e.message} — falling back to next provider"
+    end
+  elsif ENV['GMAIL_USERNAME'].present?
     config.action_mailer.perform_deliveries = true
-    response = RestClient::Resource.new("https://mailtrap.io/api/v1/inboxes.json?api_token=#{ENV['MAILTRAP_API_TOKEN']}").get
-    inbox = JSON.parse(response)[0]
     config.action_mailer.delivery_method = :smtp
     config.action_mailer.smtp_settings = {
-      :user_name => inbox['username'],
-      :password => inbox['password'],
-      :address => inbox['domain'],
-      :domain => inbox['domain'],
-      :port => 2525,
-      :authentication => :plain
+      authentication: :plain,
+      address:        'smtp.gmail.com',
+      port:           587,
+      domain:         ENV['APP_DOMAIN'] || 'localhost',
+      user_name:      ENV['GMAIL_USERNAME'],
+      password:       ENV['GMAIL_PASSWORD']
     }
+    $stderr.puts "[Mailer] Using Gmail SMTP for email delivery"
+  elsif ENV['SMTP_USERNAME'].present?
+    config.action_mailer.perform_deliveries = true
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.smtp_settings = {
+      authentication: :login,
+      address:        ENV['SMTP_ADDRESS'],
+      host:           ENV['SMTP_ADDRESS'],
+      port:           (ENV['SMTP_PORT'] || 587).to_i,
+      user_name:      ENV['SMTP_USERNAME'],
+      password:       ENV['SMTP_PASSWORD'],
+      enable_starttls_auto: true
+    }
+    $stderr.puts "[Mailer] Using SMTP server #{ENV['SMTP_ADDRESS']} for email delivery"
+  else
+    config.action_mailer.perform_deliveries = true
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.smtp_settings = {
+      address: 'localhost',
+      port:    25
+    }
+    $stderr.puts "[Mailer] WARNING: No mail provider configured — falling back to localhost:25"
   end
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

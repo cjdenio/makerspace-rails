@@ -1,6 +1,10 @@
 <% type = @invoice.resource_class %>
-<% isMembership = type == "member" %>
-<% friendly_type = isMembership ? 'Membership' : 'Rental' %>
+<% friendly_type = case type
+   when "member" then "Membership"
+   when "rental" then "Rental"
+   when "fee"    then "Shop Charge"
+   else type.capitalize
+   end %>
 
 <div style="width: 100%">
   <h3><%= friendly_type %> dues require your attention</h3>

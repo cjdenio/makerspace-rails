@@ -47,13 +47,15 @@ module Service
     end
 
     def invite_gdrive(email_address)
-      if ::Util.is_prod?
-        permission = Google::Apis::DriveV3::Permission.new(type: :user,
-            email_address: email_address,
-            role: :reader)
-        load_gdrive.create_permission(ENV['RESOURCES_FOLDER'], permission) do |result, err|
-          raise Error::Google::Share.new(err) unless err.nil?
-        end
+      unless ENV['GDRIVE_INVITES_ENABLED'] == 'true'
+        raise Error::NotAllowed.new('Google Drive invites are not enabled in this environment')
+      end
+      permission = Google::Apis::DriveV3::Permission.new(type: :user,
+          email_address: email_address,
+          role: :reader)
+      load_gdrive.create_permission(ENV['RESOURCES_FOLDER'], permission) do |result, err|
+        report_google_error(err, "drive.permissions.create") if err
+        raise Error::Google::Share.new(err) unless err.nil?
       end
     end
 
@@ -79,6 +81,7 @@ module Service
                     ) do |result, err|
           pdf.close()
           pdf.unlink()
+          report_google_error(err, "drive.files.upload_document") if err
           raise Error::Google::Upload.new(err) unless err.nil?
         end
       end
@@ -124,6 +127,7 @@ module Service
         fields: 'id',
         upload_source: Rails.root.join("dump", file_name).to_s,
       ) do |result, err|
+        report_google_error(err, "drive.files.upload_backup") if err
         raise Error::Google::Upload.new(err) unless err.nil?
       end
     end
@@ -143,16 +147,39 @@ module Service
       folder_id = get_templates()[document_name.to_sym][:folder_id]
       doc_name = "#{member_name}_#{document_name}_#{date_str}"
 
-      doc = drive.list_files(
-        q: "'#{folder_id}' in parents and name = '#{doc_name}.pdf'",
-        fields: "files(id, web_content_link)",
-      )
+      doc = report_google_exceptions("drive.files.list") do
+        drive.list_files(
+          q: "'#{folder_id}' in parents and name = '#{doc_name}.pdf'",
+          fields: "files(id, web_content_link)",
+        )
+      end
 
       first_match = doc.files[0]
       raise ::Error::NotFound.new() if first_match.nil?
       file = Tempfile.new([doc_name, ".pdf"], encoding: "ASCII-8BIT")
 
-      drive.get_file(first_match.id, download_dest: file)
+      report_google_exceptions("drive.files.get") do
+        drive.get_file(first_match.id, download_dest: file)
+      end
+    end
+
+    def self.report_google_error(error, operation)
+      Service::GoogleApiErrorReporter.report_if_permission_denied(
+        error,
+        operation: operation,
+        resource_type: "GoogleDrive"
+      )
+    end
+
+    def report_google_error(error, operation)
+      Service::GoogleDrive.report_google_error(error, operation)
+    end
+
+    def self.report_google_exceptions(operation)
+      yield
+    rescue Google::Apis::Error => error
+      report_google_error(error, operation)
+      raise
     end
   end
 end

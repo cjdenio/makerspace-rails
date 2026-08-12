@@ -11,6 +11,7 @@ require "action_controller/railtie"
 require "action_mailer/railtie"
 require "sprockets/railtie"
 require "rails/test_unit/railtie"
+require_relative "../lib/app_domain_url"
 
 require 'dotenv'
 if (ENV["RAILS_ENV"] == 'production')
@@ -32,11 +33,13 @@ Mongoid.load!("#{__dir__}/mongoid.yml")
 
 module MemberInterface
   class Application < Rails::Application
+    config.load_defaults 5.0
+
     config.autoload_paths << "#{Rails.root}/lib"
     config.eager_load_paths << "#{Rails.root}/lib"
 
     if Rails.env.development?
-      config.action_mailer.preview_path = "#{Rails.root}/spec/mailers/previews"
+      config.action_mailer.preview_paths = ["#{Rails.root}/spec/mailers/previews"]
     end
 
     config.to_prepare do
