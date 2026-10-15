@@ -19,6 +19,49 @@
 
 # Learn more: http://github.com/javan/whenever
 
+every 10.minutes do
+  runner 'FixTicketDeliveryRecoveryJob.perform_later'
+end
+
 every :day, at: '2am' do
   rake "db:backup"
+end
+
+every :day, at: '7am' do
+  runner "SlackProfileSyncJob.perform_later"
+end
+
+every 1.month, at: '3:15am' do
+  rake "slack:refresh_public_channel_cache"
+end
+
+every 1.hour do
+  runner "MemberProvisioningReconciliationJob.perform_now"
+end
+
+every '0 8 1 * *' do
+  runner 'CardExpirationCheckJob.perform_later'
+end
+
+every :day, at: '8am' do
+  runner "VolunteerEventReminderJob.perform_later"
+end
+
+every :day, at: '9am' do
+  runner "MembershipExpirationNoticeJob.perform_later"
+end
+
+# The checkout request jobs below are given in UTC, the server's time zone: 12:30 UTC is
+# 8:30 am Eastern and 14:30 UTC is 10:30 am Eastern during daylight saving time (an hour
+# earlier in Eastern time otherwise).
+every :day, at: '12:30pm' do
+  runner "CheckoutRequestReminderJob.perform_later"
+end
+
+every :day, at: '2:30pm' do
+  runner "CheckoutRequestDigestJob.perform_later"
+end
+
+every :day, at: '9:15am' do
+  runner "FixTicketAssigneeExpirationJob.perform_later"
 end

@@ -1,5 +1,5 @@
 class EarnedMembershipSerializer < ActiveModel::Serializer
-  attributes :id, :member_id, :member_name, :member_status, :member_expiration
+  attributes :id, :member_id, :member_name, :member_status, :member_expiration, :status, :status_changed_at
   has_many :requirements, serializer: EarnedMembership::RequirementSerializer
 
   def member_name

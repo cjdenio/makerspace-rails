@@ -45,6 +45,6 @@ production:
 test:
   clients:
     default:
-      uri: <%=ENV['MLAB_URI']%>
+      uri: <%= Service::TestDatabaseUri.for_worker(ENV['MLAB_URI'], ENV['TEST_ENV_NUMBER']) %>
   options:
     raise_not_found_error: false

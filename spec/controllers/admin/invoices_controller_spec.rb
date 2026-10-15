@@ -112,7 +112,7 @@ RSpec.describe Admin::InvoicesController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(Invoice.last.id.to_s)
       end
     end
@@ -168,7 +168,7 @@ RSpec.describe Admin::InvoicesController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(invoice.id.as_json)
       end
     end
@@ -212,6 +212,60 @@ RSpec.describe Admin::InvoicesController, type: :controller do
         delete :destroy, params: {id: "foo" }, format: :json
         expect(response).to have_http_status(404)
       end
+    end
+  end
+
+  describe "resource manager authorization" do
+    login_resource_manager
+
+    it "only lists fee invoices" do
+      fee_invoice = create(:invoice, resource_class: "fee", resource_id: member.id)
+      create(:invoice, resource_class: "member", resource_id: member.id)
+      get :index, format: :json
+      parsed_response = JSON.parse(response.body)
+      expect(response).to have_http_status(200)
+      expect(parsed_response.map { |invoice| invoice['id'] }).to eq([fee_invoice.id.to_s])
+    end
+
+    it "forbids updating non-fee invoices" do
+      invoice = create(:invoice, resource_class: "member", resource_id: member.id)
+      put :update, params: { id: invoice.to_param, amount: 1.00 }, format: :json
+      expect(response).to have_http_status(403)
+    end
+
+    it "forbids changing fee invoices into non-fee invoices" do
+      invoice = create(:invoice, resource_class: "fee", resource_id: member.id)
+      put :update, params: { id: invoice.to_param, resource_class: "member" }, format: :json
+      expect(response).to have_http_status(403)
+    end
+
+    it "forbids deleting non-fee invoices" do
+      invoice = create(:invoice, resource_class: "member", resource_id: member.id)
+      expect {
+        delete :destroy, params: { id: invoice.to_param }, format: :json
+      }.not_to change(Invoice, :count)
+      expect(response).to have_http_status(403)
+    end
+
+    # Regression for the orphaned-invoices Array/Criteria bug: Invoice.orphaned
+    # returns a plain Array (via Array#select internally), so filtering it the
+    # same way as a Mongoid::Criteria (.where) would raise NoMethodError for
+    # resource managers hitting this path, rather than returning the allowed
+    # fee invoices.
+    it "filters orphaned invoices to fee invoices only, without raising" do
+      fee_invoice = create(:invoice, resource_class: "fee", resource_id: member.id,
+        subscription_id: "sub_orphan_fee", settled_at: nil, transaction_id: nil)
+      member_invoice = create(:invoice, resource_class: "member", resource_id: member.id,
+        subscription_id: "sub_orphan_member", settled_at: nil, transaction_id: nil)
+      allow(Invoice).to receive(:orphaned).and_return([fee_invoice, member_invoice])
+
+      expect {
+        get :index, params: { orphaned: 'true' }, format: :json
+      }.not_to raise_error
+
+      parsed_response = JSON.parse(response.body)
+      expect(response).to have_http_status(200)
+      expect(parsed_response.map { |invoice| invoice['id'] }).to eq([fee_invoice.id.to_s])
     end
   end
 end

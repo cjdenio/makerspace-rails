@@ -27,7 +27,7 @@ RSpec.describe Admin::InvoiceOptionsController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(InvoiceOption.last.id.to_s)
       end
     end
@@ -56,7 +56,7 @@ RSpec.describe Admin::InvoiceOptionsController, type: :controller do
 
         parsed_response = JSON.parse(response.body)
         expect(response).to have_http_status(200)
-        expect(response.content_type).to eq "application/json"
+        expect(response.media_type).to eq "application/json"
         expect(parsed_response['id']).to eq(invoice_option.id.to_s)
       end
     end
@@ -97,6 +97,74 @@ RSpec.describe Admin::InvoiceOptionsController, type: :controller do
         delete :destroy, params: {id: "foo" }, format: :json
         expect(response).to have_http_status(404)
       end
+    end
+
+    context "when a rental type still references the option" do
+      it "blocks the delete with a conflict" do
+        RentalType.create!(display_name: "Storage Tote", invoice_option_id: invoice_option.id.to_s)
+
+        expect {
+          delete :destroy, params: { id: invoice_option.to_param }, format: :json
+        }.not_to change(InvoiceOption, :count)
+
+        expect(response).to have_http_status(409)
+      end
+
+      it "logs the blocked attempt to the audit log" do
+        RentalType.create!(display_name: "Storage Tote", invoice_option_id: invoice_option.id.to_s)
+
+        expect(::Service::AuditLogger).to receive(:log).with(
+          hash_including(event_type: 'invoice_option_delete_blocked')
+        )
+
+        delete :destroy, params: { id: invoice_option.to_param }, format: :json
+      end
+    end
+
+    context "when a member has an unsettled invoice on the option's plan" do
+      it "blocks the delete with a conflict" do
+        option = create(:invoice_option, plan_id: "plan_123")
+        create(:invoice, plan_id: "plan_123", settled_at: nil)
+
+        expect {
+          delete :destroy, params: { id: option.to_param }, format: :json
+        }.not_to change(InvoiceOption, :count)
+
+        expect(response).to have_http_status(409)
+      end
+    end
+
+    context "when the subscriber check itself raises an error" do
+      it "fails safe by blocking the delete, logs it, and alerts Slack" do
+        invoice_option # Invoke here to create the IO
+        allow(controller).to receive(:in_use_by_subscribers?).and_raise(StandardError.new("connection reset"))
+
+        expect(::Service::ErrorReporter).to receive(:notify)
+        expect(::Service::SlackConnector).to receive(:send_slack_message)
+
+        expect {
+          delete :destroy, params: { id: invoice_option.to_param }, format: :json
+        }.not_to change(InvoiceOption, :count)
+
+        expect(response).to have_http_status(409)
+      end
+    end
+  end
+
+  describe "resource manager authorization" do
+    login_resource_manager
+
+    it "forbids changing fee options into non-fee options" do
+      fee_option = create(:invoice_option, resource_class: "fee")
+      put :update, params: { id: fee_option.to_param, resource_class: "member" }, format: :json
+      expect(response).to have_http_status(403)
+      expect(fee_option.reload.resource_class).to eq("fee")
+    end
+
+    it "forbids updating non-fee options" do
+      member_option = create(:invoice_option, resource_class: "member")
+      put :update, params: { id: member_option.to_param, quantity: 2 }, format: :json
+      expect(response).to have_http_status(403)
     end
   end
 end

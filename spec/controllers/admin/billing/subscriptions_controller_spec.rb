@@ -74,6 +74,36 @@ RSpec.describe Admin::Billing::SubscriptionsController, type: :controller do
       expect(response).to have_http_status(200)
       expect(parsed_response.first['id']).to eq(canceled_subscription.id.to_s)
     end
+
+    it "filters exact household subscription id searches through groups" do
+      primary = create(:member)
+      create(
+        :invoice,
+        member: primary,
+        resource_class: "member",
+        resource_id: primary.id.to_s,
+        plan_id: "household-membership-one-month-recurring"
+      )
+      create(
+        :group,
+        groupName: primary.id.to_s,
+        groupRep: primary.fullname,
+        subscription_id: "household_sub_123"
+      )
+
+      search_ids = double("search ids", in: nil)
+      search = double("search", ids: search_ids)
+
+      expect(search_ids).to receive(:in).with(["household_sub_123"])
+      expect(BraintreeService::Subscription).to receive(:get_subscriptions) do |_gateway, query|
+        query.call(search)
+        []
+      end
+
+      get :index, params: { search: "household_sub_123" }, format: :json
+
+      expect(response).to have_http_status(200)
+    end
   end
 
   describe "DELETE #destroy" do 

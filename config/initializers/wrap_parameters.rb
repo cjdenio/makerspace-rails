@@ -22,7 +22,8 @@ module ActionController
         when Hash
           val.keys.each do |k, v = val[k]|
             val.delete k
-            val[k.underscore] = deep_underscore_params!(v)
+            normalized_key = k == 'cf-turnstile-response' ? k : k.underscore
+            val[normalized_key] = deep_underscore_params!(v)
           end
           val
         else

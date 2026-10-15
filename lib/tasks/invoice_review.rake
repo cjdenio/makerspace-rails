@@ -13,13 +13,15 @@ task :invoice_review => :environment do
       pending_settlement = Service::Analytics::Invoices.query_settlement_pending()
 
       def build_member_url(member_id)
-        base_url = ActionMailer::Base.default_url_options[:host]
+        base_url = Rails.configuration.x.app_base_url
         member = Member.find(member_id)
+        return "(deleted member #{member_id})" if member.nil?
+
         "<#{base_url}/members/#{member.id}|#{member.fullname}>"
       end
 
       def build_member_list(invoice_list)
-        uniq_members = invoice_list.distinct(:member_id)
+        uniq_members = invoice_list.distinct(:member_id).compact
         uniq_members.map do |member_id|
           invoice_count = invoice_list.where(member_id: member_id).size
           url = build_member_url(member_id)

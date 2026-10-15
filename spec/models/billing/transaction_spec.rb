@@ -51,6 +51,43 @@ RSpec.describe BraintreeService::Transaction, type: :model do
       end
     end
 
+    describe "#invoice" do
+      it "resolves via the original transaction's id for a refund" do
+        invoice = create(:invoice, transaction_id: "original-id")
+        refund_transaction = build(:transaction, id: "refund-id", refunded_transaction_id: "original-id")
+
+        normalized = BraintreeService::Transaction.normalize(gateway, refund_transaction)
+
+        expect(normalized.invoice).to eq(invoice)
+      end
+
+      it "resolves via its own id for a non-refund transaction" do
+        invoice = create(:invoice, transaction_id: "charge-id")
+        charge_transaction = build(:transaction, id: "charge-id")
+
+        normalized = BraintreeService::Transaction.normalize(gateway, charge_transaction)
+
+        expect(normalized.invoice).to eq(invoice)
+      end
+
+      it "returns nil when no invoice matches" do
+        unmatched_transaction = build(:transaction, id: "unmatched-id")
+
+        normalized = BraintreeService::Transaction.normalize(gateway, unmatched_transaction)
+
+        expect(normalized.invoice).to be_nil
+      end
+
+      it "resolves via last_failed_transaction_id for a failed attempt" do
+        invoice = create(:invoice, last_failed_transaction_id: "failed-id")
+        failed_transaction = build(:transaction, id: "failed-id")
+
+        normalized = BraintreeService::Transaction.normalize(gateway, failed_transaction)
+
+        expect(normalized.invoice).to eq(invoice)
+      end
+    end
+
     describe "#get_transactions" do
       it "fetches transactions" do
         allow(gateway).to receive_message_chain(:transaction, search: [fake_transaction]) # Setup method calls to gateway
@@ -59,6 +96,44 @@ RSpec.describe BraintreeService::Transaction, type: :model do
 
         result = BraintreeService::Transaction.get_transactions(gateway)
         expect(result).to eq([fake_transaction])
+      end
+
+
+      it "stops at the requested limit" do
+        transactions = Array.new(3) { |index| build(:transaction, id: "transaction-#{index}") }
+        allow(gateway).to receive_message_chain(:transaction, search: transactions)
+        allow(BraintreeService::Transaction).to receive(:normalize) { |_gateway, transaction| transaction }
+
+        result = BraintreeService::Transaction.get_transactions(gateway, nil, 2)
+
+        expect(result).to eq(transactions.first(2))
+      end
+
+      it "caps the requested limit at 500 transactions" do
+        transactions = Array.new(501, fake_transaction)
+        allow(gateway).to receive_message_chain(:transaction, search: transactions)
+        allow(BraintreeService::Transaction).to receive(:normalize) { |_gateway, transaction| transaction }
+
+        result = BraintreeService::Transaction.get_transactions(gateway, nil, 1_000)
+
+        expect(result.length).to eq(500)
+      end
+
+      it "applies the limit after filtering results" do
+        unmatched = build(:transaction, id: "unmatched")
+        matched = build(:transaction, id: "matched")
+        transactions = [unmatched, matched]
+        allow(gateway).to receive_message_chain(:transaction, search: transactions)
+        allow(BraintreeService::Transaction).to receive(:normalize) { |_gateway, transaction| transaction }
+
+        result = BraintreeService::Transaction.get_transactions(
+          gateway,
+          nil,
+          1,
+          ->(transaction) { transaction.id == "matched" }
+        )
+
+        expect(result).to eq([matched])
       end
     end
 
@@ -102,7 +177,7 @@ RSpec.describe BraintreeService::Transaction, type: :model do
 
           allow(BillingMailer).to receive_message_chain(:receipt, :deliver_later)
           expect(BillingMailer).to receive(:receipt).with(invoice.member.email, fake_transaction.id, invoice.id)
-          expect(BraintreeService::Transaction).to receive(:enque_message).with(/received for #{invoice.name}/i).twice
+          expect(BraintreeService::Transaction).to receive(:enque_message).with(/received for #{invoice.name}/i, anything, anything).twice
           BraintreeService::Transaction.submit_invoice_for_settlement(gateway, invoice)
         end
 
@@ -127,7 +202,9 @@ RSpec.describe BraintreeService::Transaction, type: :model do
           allow(gateway).to receive_message_chain(:transaction, sale: success_result) # Setup method calls to gateway
           allow(BraintreeService::Transaction).to receive(:normalize).with(gateway, fake_transaction).and_return(fake_transaction)
 
-          expect(gateway.transaction).to receive(:sale).and_return(success_result)
+          expect(gateway.transaction).to receive(:sale).with(
+            hash_including(order_id: invoice.id.to_s)
+          ).and_return(success_result)
           result_transaction = BraintreeService::Transaction.submit_invoice_for_settlement(gateway, invoice)
 
           expect(result_transaction).to eq(fake_transaction)
@@ -144,7 +221,7 @@ RSpec.describe BraintreeService::Transaction, type: :model do
           expect(gateway.transaction).to receive(:sale).and_return(success_result)
           allow(BillingMailer).to receive_message_chain(:receipt, :deliver_later)
           expect(BillingMailer).to receive(:receipt).with(invoice.member.email, fake_transaction.id, invoice.id)
-          expect(BraintreeService::Transaction).to receive(:enque_message).with(/received for #{invoice.name}/i)
+          expect(BraintreeService::Transaction).to receive(:enque_message).with(/received for #{invoice.name}/i, anything, anything)
           BraintreeService::Transaction.submit_invoice_for_settlement(gateway, invoice)
         end
 

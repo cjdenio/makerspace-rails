@@ -3,7 +3,10 @@ require "rails_helper"
 RSpec.describe "Braintree Notification Handling", :type => :request do
   let(:gateway) { double }
   let(:member) { create(:member, customer_id: "bar") }
-  let(:invoice) { create(:invoice, member: member, subscription_id: "some_id") }
+  # Braintree's sample SubscriptionChargedSuccessfully payload uses $49.99.
+  # Keep the invoice amount aligned so these request specs exercise lifecycle
+  # handling rather than the unmatched-payment path.
+  let(:invoice) { create(:invoice, member: member, subscription_id: "some_id", amount: 49.99) }
   let(:subscription) { build(:subscription, id: invoice.generate_subscription_id) }
   let(:invoice_option) { create(:invoice_option, id: "444", plan_id: "monthly_membership_subscription") }
   let(:fake_transaction) { double(id: "foo") }

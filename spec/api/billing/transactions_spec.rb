@@ -16,10 +16,14 @@ describe 'Billing::Transactions API', type: :request do
     get 'Gets a list of transactions' do
       tags 'Transactions'
       operationId "listTransactions"
+      consumes 'application/json'
       parameter name: :startDate, in: :query, type: :string, required: false
       parameter name: :endDate, in: :query, type: :string, required: false
       parameter name: :refund, in: :query, type: :boolean, required: false
       parameter name: :type, in: :query, type: :string, required: false
+      parameter name: :minAmount, in: :query, type: :number, required: false
+      parameter name: :maxAmount, in: :query, type: :number, required: false
+      parameter name: :limit, in: :query, schema: { type: :integer, minimum: 1, maximum: 500 }, required: false
 
       parameter name: :transactionStatus, in: :query, schema: { type: :array, items: { type: :string } }, required: false
       parameter name: :paymentMethodToken, in: :query, schema: { type: :array, items: { type: :string } }, required: false
@@ -36,7 +40,7 @@ describe 'Billing::Transactions API', type: :request do
           [i1, i2, i3]
           transactions = [t1, t2, t3]
           sign_in customer
-          allow(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, anything).and_return(transactions)
+          allow(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, anything, anything).and_return(transactions)
         end
 
         schema type: :array,
@@ -69,6 +73,7 @@ describe 'Billing::Transactions API', type: :request do
 
       tags 'Transactions'
       operationId "createTransaction"
+      consumes 'application/json'
       parameter name: :createTransactionDetails, in: :body, schema: {
         title: :createTransactionDetails, 
         type: :object,
@@ -81,18 +86,6 @@ describe 'Billing::Transactions API', type: :request do
         required: [:paymentMethodId]
       }, required: true
       
-      request_body_json schema: {
-        title: :createTransactionDetails, 
-        type: :object,
-        properties: {
-          invoiceId: { type: :string },
-          invoiceOptionId: { type: :string },
-          discountId: { type: :string },
-          paymentMethodId: { type: :string }
-        },
-        required: [:paymentMethodId]
-      }, required: true
-
       response '200', 'transaction created' do
         before do
           sign_in customer

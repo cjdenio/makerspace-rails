@@ -44,10 +44,12 @@ class BraintreeService::TransactionSerializer < ActiveModel::Serializer
 
   def payment_method_details
     payment_attr = object.payment_instrument_type
-    if payment_attr == "credit_card"
+    if payment_attr == 'credit_card'
       details = object.credit_card_details
-    elsif payment_attr == "paypal"
+    elsif payment_attr == 'paypal_account' || payment_attr == 'paypal'
       details = object.paypal_details
+    elsif payment_attr == 'venmo_account'
+      details = object.venmo_account_details
     end
     details
   end

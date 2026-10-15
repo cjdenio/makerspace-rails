@@ -1,0 +1,15 @@
+{
+  "name": "Makerspace Rails review app",
+  "description": "Deploys pull requests automatically for testing.",
+  "repository": "https://github.com/ManchesterMakerspace/makerspace-react-2026.git",
+  "env": {
+    "ENVIRONMENT": "development"
+    "NODE_ENV": "development"
+  },
+  "addons": [
+    "heroku-redis"
+  ],
+  "scripts": {
+    "postdeploy": "bundle exec rake integration"
+  }
+}

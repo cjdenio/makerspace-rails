@@ -5,15 +5,23 @@ require 'rails_helper'
 RSpec.describe EarnedMembership::Requirement, type: :model do
 
   describe "public methods" do
-    it "selects the current unsatisfied term" do
+    # Use around to guarantee set_callback runs even if the test raises.
+    # Inline skip/set pairs leave global class state corrupted when a test fails
+    # mid-body, causing ArgumentError in subsequent specs that call skip_callback.
+    around(:each) do |example|
       EarnedMembership::Requirement.skip_callback(:create, :before, :build_first_term)
+      example.run
+    ensure
+      EarnedMembership::Requirement.set_callback(:create, :before, :build_first_term)
+    end
+
+    it "selects the current unsatisfied term" do
       req = create(:requirement, terms: FactoryBot.create_list(:term, 2, satisfied: true))
       new_term = build(:term)
       req.terms.push(new_term)
       req.save
       expect(req.current_term).to eq(EarnedMembership::Term.last)
       expect(req.current_term.start_date).to eq(new_term.start_date)
-      EarnedMembership::Requirement.set_callback(:create, :before, :build_first_term)
     end
   end
 

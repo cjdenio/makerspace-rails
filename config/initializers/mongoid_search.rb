@@ -30,7 +30,7 @@ Mongoid::Search.setup do |config|
   ## Regex to search
 
   ## Match partial words on both sides (slower)
-  config.regex = Proc.new { |query| /#{query}/ }
+  config.regex = Proc.new { |query| /#{query}/i }
 
   ## Match partial words on the beginning or in the end (slightly faster)
   # config.regex = Proc.new { |query| /^#{query}/ }

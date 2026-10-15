@@ -1,0 +1,9 @@
+<h1>Workshops</h1>
+<ul>
+  <% page[:shops].each do |shop| %>
+    <li><%= link_to shop[:name], "/shop/#{shop[:id]}/public.html" %>
+      <% if shop[:out_of_service] %><span class="status">Shop out of service</span><% end %>
+    </li>
+  <% end %>
+</ul>
+<% if page[:shops].empty? %><p>No workshops are currently available.</p><% end %>

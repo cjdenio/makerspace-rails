@@ -32,6 +32,9 @@ class BraintreeService::Discount < Braintree::Discount
     if types.include?("rental")
       discounts.concat(self.get_rental_discounts(discounts_to_filter))
     end
+    if types.include?("volunteer")
+      discounts.concat(self.get_volunteer_discounts(discounts_to_filter))
+    end
     discounts
   end
 
@@ -41,6 +44,12 @@ class BraintreeService::Discount < Braintree::Discount
 
   def self.get_rental_discounts(discounts)
     discounts.select { |plan| /rental/.match(plan.id) }
+  end
+
+  # Volunteer discounts must have 'volunteer' in the Braintree discount ID
+  # e.g. volunteer_discount_10, volunteer_10
+  def self.get_volunteer_discounts(discounts)
+    discounts.select { |plan| /volunteer/.match(plan.id) }
   end
 
   private

@@ -136,6 +136,32 @@ RSpec.describe Billing::SubscriptionsController, type: :controller do
     end
   end
 
+  describe "GET #cancellation_impact" do
+    it "returns reservations that will be cancelled with the membership subscription" do
+      impacted = instance_double(
+        Reservation,
+        id: BSON::ObjectId.new,
+        title: "Woodshop project",
+        calendar_html_link: "https://calendar.google.com/calendar/event?eid=example",
+        start_at: 1.day.from_now,
+        end_at: 2.days.from_now
+      )
+      allow_any_instance_of(Billing::SubscriptionsController).to receive(:current_member).and_return(member)
+      allow(member).to receive(:find_subscribed_resource).with("foobar").and_return(member)
+      allow(ReservationLifecycleService).to receive(:cancellation_impact).with(member).and_return([impacted])
+
+      get :cancellation_impact, params: { id: "foobar" }, format: :json
+
+      parsed_response = JSON.parse(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(parsed_response["reservationCount"]).to eq(1)
+      expect(parsed_response["reservations"].first["title"]).to eq("Woodshop project")
+      expect(parsed_response["reservations"].first["calendarHtmlLink"]).to eq(
+        impacted.calendar_html_link
+      )
+    end
+  end
+
   describe "DELETE #destroy" do
     it "Cancels subscription for member" do
       allow_any_instance_of(Billing::SubscriptionsController).to receive(:current_member).and_return(member)

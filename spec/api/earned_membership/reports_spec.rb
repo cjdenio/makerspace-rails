@@ -5,6 +5,7 @@ describe 'Reports API', type: :request do
     get 'Gets a list of reports for current member' do
       tags 'Reports'
       operationId "listEarnedMembershipReports"
+      consumes 'application/json'
       parameter name: :id, :in => :path, :type => :string
       parameter name: :pageNum, in: :query, type: :number, required: false
       parameter name: :orderBy, in: :query, type: :string, required: false
@@ -37,13 +38,9 @@ describe 'Reports API', type: :request do
     post 'Create an report' do
       tags 'Reports'
       operationId 'createEarnedMembershipReport'
+      consumes 'application/json'
       parameter name: :id, :in => :path, :type => :string
       parameter name: :createEarnedMembershipReportDetails, in: :body, schema: {
-        title: :createEarnedMembershipReportDetails, 
-        '$ref' => '#/components/schemas/NewReport'
-      }, required: true
-
-      request_body_json schema: {
         title: :createEarnedMembershipReportDetails, 
         '$ref' => '#/components/schemas/NewReport'
       }, required: true

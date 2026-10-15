@@ -1,0 +1,7 @@
+<% calendars.each do |calendar| %>
+  <section class="resource-calendar">
+    <h2><%= calendar[:name] %> calendar</h2>
+    <iframe src="<%= calendar[:url] %>" title="<%= calendar[:name] %> resource calendar"
+      loading="lazy" class="calendar-frame"></iframe>
+  </section>
+<% end %>

@@ -1,0 +1,14 @@
+<h1><%= page[:name] %></h1>
+<% if page[:out_of_service] %><p class="status" role="status">Shop out of service. New reservations for this shop and its tools are unavailable.</p><% end %>
+<% if page[:wiki_url] %><p><%= link_to "Shop wiki", page[:wiki_url] %></p><% end %>
+<h2>Tools</h2>
+<ul>
+  <% page[:tools].each do |tool| %>
+    <li>
+      <%= link_to tool[:name], "/tool/#{tool[:id]}/public.html" %>
+      <% if tool[:out_of_service] %><span class="status">Out of service — do not use</span><% end %>
+      <% if tool[:open] %><span class="status">No checkout required</span><% end %>
+    </li>
+  <% end %>
+</ul>
+<%= render "public_catalog/calendars", calendars: page[:calendars] %>

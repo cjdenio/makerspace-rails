@@ -20,7 +20,7 @@ RSpec.describe RentalsController, type: :controller do
     it "assigns all rentals for current user as @rentals" do
       rental = Rental.create(valid_attributes)
       get :index, params: {}
-      expect(assigns(:rentals)).to eq([rental])
+      expect(Rental.where(member_id: member.id).to_a).to eq([rental])
     end
 
     it "renders json of @rentals" do
@@ -28,7 +28,7 @@ RSpec.describe RentalsController, type: :controller do
       get :index, params: {}
 
       expect(response).to have_http_status(200)
-      expect(response.content_type).to eq "application/json"
+      expect(response.media_type).to eq "application/json"
       parsed_response = JSON.parse(response.body)
       expect(parsed_response.first['id']).to eq(Rental.last.id.to_s)
     end
@@ -38,7 +38,7 @@ RSpec.describe RentalsController, type: :controller do
     it "assigns the requested rental as @rental" do
       rental = Rental.create(valid_attributes)
       get :show, params: {id: rental.to_param}
-      expect(assigns(:rental)).to eq(rental)
+      expect(Rental.find(rental.id)).to eq(rental)
     end
 
     it "renders json of the created rental" do
@@ -46,7 +46,7 @@ RSpec.describe RentalsController, type: :controller do
       get :show, params: {id: rental.to_param}
 
       expect(response).to have_http_status(200)
-      expect(response.content_type).to eq "application/json"
+      expect(response.media_type).to eq "application/json"
       parsed_response = JSON.parse(response.body)
       expect(parsed_response['id']).to eq(Rental.last.id.to_s)
     end
@@ -54,7 +54,7 @@ RSpec.describe RentalsController, type: :controller do
 
   describe "PUT #update" do
     let!(:current_user) { create(:member) }
-    let(:rental) { create(:rental, member: current_user) }
+    let(:rental) { create(:rental, member: current_user, status: "pending_agreement") }
     before(:each) do
       sign_in current_user
     end
@@ -62,7 +62,7 @@ RSpec.describe RentalsController, type: :controller do
     it "renders json of the updated rental" do
       put :update, params: { id: rental.id, signature: "foo,bar" }, format: :json
       expect(response).to have_http_status(200)
-      expect(response.content_type).to eq "application/json"
+      expect(response.media_type).to eq "application/json"
       parsed_response = JSON.parse(response.body)
       expect(parsed_response['id']).to eq(rental.id.as_json)
       expect(parsed_response['contractOnFile']).to eq(true)

@@ -5,6 +5,7 @@ describe 'Invoices API', type: :request do
     get 'Gets a list of invoices' do
       tags 'Invoices'
       operationId "listInvoices"
+      consumes 'application/json'
       parameter name: :pageNum, in: :query, type: :number, required: false
       parameter name: :orderBy, in: :query, type: :string, required: false
       parameter name: :order, in: :query, type: :string, required: false
@@ -38,17 +39,8 @@ describe 'Invoices API', type: :request do
     post 'Create an invoice' do
       tags 'Invoices'
       operationId 'createInvoice'
+      consumes 'application/json'
       parameter name: :createInvoiceDetails, in: :body, schema: {
-        title: :createInvoiceDetails,
-        type: :object,
-        properties: {
-          id: { type: :string },
-          discountId: { type: :string }
-        },
-        required: [:id]
-      }, required: true
-
-      request_body_json schema: {
         title: :createInvoiceDetails,
         type: :object,
         properties: {

@@ -1,0 +1,30 @@
+<h1><% if page[:wiki_url] %><%= link_to page[:name], page[:wiki_url] %><% else %><%= page[:name] %><% end %></h1>
+<p class="description"><%= page[:description] %></p>
+<% if page[:shop][:out_of_service] %><p class="status" role="status">Shop out of service. New reservations for this shop and its tools are unavailable.</p><% end %>
+<% if page[:out_of_service] %><p class="status" role="status">Out of service — do not use this tool.</p><% end %>
+<p><%= link_to page[:shop][:name], "/shop/#{page[:shop][:id]}/public.html" %></p>
+<% if page[:open] %>
+  <p class="status">No checkout required</p>
+<% else %>
+  <%= link_to "Request checkout", "/tools/#{page[:id]}/request-checkout", class: "button" %>
+  <p class="approver-link"><%= link_to "Approver? Sign in to check out a member", "/tools/#{page[:id]}/check-out-member" %></p>
+<% end %>
+<% if (map = page[:map]) %>
+  <% shape_points = ->(points) { points.map { |x, y| "#{x},#{y}" }.join(" ") } %>
+  <figure class="storage-map">
+    <svg viewBox="<%= map[:view_box].join(' ') %>" role="img" aria-label="Map showing where this tool is normally stored" xmlns="http://www.w3.org/2000/svg">
+      <image href="<%= image_path("shopFloorPlans/floor-#{map[:floor]}.svg") %>" x="0" y="0" width="<%= map[:image_size][0] %>" height="<%= map[:image_size][1] %>" />
+      <% map[:areas].each do |area| %><polygon class="storage-map-area" points="<%= shape_points.call(area[:points]) %>" style="fill:<%= area[:color] %>;fill-opacity:<%= area[:opacity] %>;stroke:<%= area[:color] %>" /><% end %>
+      <% map[:pins].each do |pin| %>
+        <circle class="storage-map-pin" cx="<%= pin[:at][0] %>" cy="<%= pin[:at][1] %>" r="<%= map[:pin_radius] %>" style="fill:<%= pin[:color] %>" />
+        <path class="storage-map-glyph" d="<%= pin[:glyph] %>" transform="translate(<%= pin[:at][0] %> <%= pin[:at][1] %>) scale(<%= (map[:pin_radius] * 1.3 / 24).round(4) %>) translate(-12 -12)" />
+      <% end %>
+      <% if map[:tool_shape] %><polygon class="storage-map-tool" points="<%= shape_points.call(map[:tool_shape]) %>" /><% end %>
+      <circle class="storage-map-halo" cx="<%= map[:tool_marker][0] %>" cy="<%= map[:tool_marker][1] %>" r="<%= (map[:marker_radius] * 1.5).round(2) %>" />
+      <circle class="storage-map-marker" cx="<%= map[:tool_marker][0] %>" cy="<%= map[:tool_marker][1] %>" r="<%= map[:marker_radius] %>" />
+      <path class="storage-map-glyph" d="<%= map[:tool_glyph] %>" transform="translate(<%= map[:tool_marker][0] %> <%= map[:tool_marker][1] %>) scale(<%= (map[:marker_radius] * 1.3 / 24).round(4) %>) translate(-12 -12)" />
+    </svg>
+    <figcaption>Where this tool is normally stored</figcaption>
+  </figure>
+<% end %>
+<%= render "public_catalog/calendars", calendars: page[:calendars] %>

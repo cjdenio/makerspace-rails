@@ -1,0 +1,27 @@
+#pragma once
+
+// Copy this file to Config.h and replace these values before flashing.
+constexpr char WIFI_SSID[] = "makerspace-wifi";
+constexpr char WIFI_PASSWORD[] = "change-me";
+constexpr char MQTT_HOST[] = "mqtt.example.org";
+constexpr uint16_t MQTT_PORT = 1883;
+constexpr char MQTT_USERNAME[] = "";
+constexpr char MQTT_PASSWORD[] = "";
+constexpr char MQTT_TOPIC_PREFIX[] = "reservations";
+
+// Set true when the enclosure mounts the display upside down.
+constexpr bool UPNEXT_FLIP_180 = false;
+
+// The daemon uses these names verbatim in MQTT topics. An empty tool selects
+// the shop-wide topic; add one entry for each shop/tool the dial should offer.
+struct Resource {
+  const char *shop;
+  const char *tool;
+};
+
+constexpr Resource RESOURCES[] = {
+    {"Wood Shop", ""},
+    {"Wood Shop", "Table Saw"},
+    {"Metal Shop", ""},
+};
+constexpr size_t RESOURCE_COUNT = sizeof(RESOURCES) / sizeof(RESOURCES[0]);
