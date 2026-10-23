@@ -20,12 +20,19 @@ old-config.json
 /public/assets
 /public-coverage
 
+/app/assets/builds/*
+!/app/assets/builds/.keep
+
 config/initializers/secret_token.rb
 
 # dotenv
 development.env
 production.env
 test.env
+.env
+
+# Local ESP32 display credentials
+/tools/UpNext/Config.h
 
 ## Environment normalization:
 /.bundle
@@ -39,7 +46,6 @@ test.env
 
 # if using bower-rails ignore default bower_components path bower.json files
 node_modules
-yarn.lock
 
 # Ignore pow environment settings
 .powenv
@@ -49,3 +55,4 @@ yarn.lock
 
 # Reporter file for integration  tests and screenshots
 /spec/rspec_results.html
+*.zip

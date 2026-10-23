@@ -1,0 +1,184 @@
+diff --git a/digital-makerspace/admin/checkout-expiration-notices.md b/digital-makerspace/admin/checkout-expiration-notices.md
+new file mode 100644
+index 0000000..d89bb0a
+--- /dev/null
++++ b/digital-makerspace/admin/checkout-expiration-notices.md
+@@ -0,0 +1,40 @@
++---
++title: Checkout expiration notices
++description: Manually sending checkout warnings and expiration notices
++published: true
++date: 2026-10-19T00:00:00.000Z
++tags: admin, checkouts
++editor: markdown
++dateCreated: 2026-10-19T00:00:00.000Z
++---
++
++# Checkout expiration notices
++
++Admins can open Member Portal Settings → Jobs and set **Checkout expiration
++advance notice (days)** to a whole number of at least 4 (default 14).
++Under **Checkout Expiration Notices**, select **Run Now** to send due messages.
++Check the job status afterward. There is no automatic schedule for this job.
++Operators can run the same job with `bundle exec rake checkout_expiration_notice`.
++
++Warnings become due at the configured lead time and at 3 days before expiration.
++A final notice becomes due after the displayed Eastern expiration date. A late
++run sends the most urgent applicable stage only. Each member gets grouped
++upcoming warnings and a separate group of newly expired checkouts, by email and
++Slack DM where linked. Messages include tool/shop, date, training plan if set,
++and a Member Portal renewal link.
++
++Only active unexpired members and pending members eligible for the tool receive
++notices. Revoked/suspended members are excluded. Secondary household members
++receive their own email. Missing Slack linkage does not block email.
++
++A failed job can be rerun: recorded successful channels are not repeated, and
++other members continue after a delivery failure. If a provider accepted a
++message but its acknowledgment was lost, retry can duplicate that message.
++Changing a checkout date starts a new notice cycle; assigning the same date does
++not. Setting Never removes the checkout from future expiry notice runs.
++
++After scanning notices, the job queues a checkout roster canvas rebuild for
++each shop with newly expired checkouts, even if member notices cannot be sent.
++Canvas updates run asynchronously. Rerun the notice job to retry unfinished
++rebuilds; only successfully published rosters are skipped on later runs.
++The first run also refreshes shops with previously expired checkouts.
+diff --git a/digital-makerspace/approvers/check-out-a-member.md b/digital-makerspace/approvers/check-out-a-member.md
+index 8f2a6fa..ba47940 100644
+--- a/digital-makerspace/approvers/check-out-a-member.md
++++ b/digital-makerspace/approvers/check-out-a-member.md
+@@ -82,3 +82,13 @@ You can also approve from Slack: `/checkout` > **View open requests**, or `/chec
+ - [Requests, reminders and notifications](/digital-makerspace/approvers/requests-and-notifications)
+ - [Revoke a checkout](/digital-makerspace/approvers/revoke-a-checkout)
+ - [Troubleshooting: checkouts](/digital-makerspace/troubleshooting/checkouts)
++
++## Renewal and expiration
++
++An expired checkout can be requested and approved again when the member meets
++the current prerequisites. Approval creates a new checkout and preserves the
++previous one as superseded History. Approval and reinstatement use the tool’s
++current Never/1–5-year policy, with dates valid through the displayed Eastern
++calendar day. Expiration is separate from revocation; use the existing admin/board
++reinstatement flow for unresolved revocations. Approver privileges alone do not
++allow editing a checkout’s expiration date.
+diff --git a/digital-makerspace/members/request-a-checkout.md b/digital-makerspace/members/request-a-checkout.md
+index f4d969a..1aa0c33 100644
+--- a/digital-makerspace/members/request-a-checkout.md
++++ b/digital-makerspace/members/request-a-checkout.md
+@@ -75,3 +75,25 @@ Open **Tool Checkouts** > **My Checkouts**. It is titled **My Active Tool Checko
+ ## Need help?
+ 
+ See [Troubleshooting: checkouts](/digital-makerspace/troubleshooting/checkouts).
++
++## Training plans and renewing an expired checkout
++
++If a tool or group has a training plan, select **Checkout training plan** before
++submitting your request. The link also appears on your pending request and
++existing checkout and opens separately from the portal. Slack request and
++checkout details show the same link.
++
++After submitting a new request through the portal or Slack, members with a
++linked Slack account receive a confirmation DM. When the requested tool or
++group has a training plan, the DM directs you to review the material next;
++select **Checkout training plan** in the message to open it.
++
++Your checkout shows **Never expires**, **Expires [date]**, or **Expired [date]**.
++Dates are Eastern time and checkouts remain valid through that date. In your
++checkout list, choose **Expired** and select **Request renewal** when available.
++An approver must approve the renewal. Your previous checkout remains in History.
++A revoked checkout requires admin or board reinstatement instead.
++
++The Reinstated filter is available in the authorized checkout management roster,
++not My Tool Checkouts. Use your Expired, Renewal history, Revoked, or All views
++to inspect your own checkout records.
+diff --git a/digital-makerspace/resource-managers/tool-groups-and-approvers.md b/digital-makerspace/resource-managers/tool-groups-and-approvers.md
+index b8fc0c7..c1f9f63 100644
+--- a/digital-makerspace/resource-managers/tool-groups-and-approvers.md
++++ b/digital-makerspace/resource-managers/tool-groups-and-approvers.md
+@@ -94,3 +94,13 @@ In Slack, `/checkout @member group-name` opens a review box first. See [the /che
+ - [Add and manage tools and shops](/digital-makerspace/resource-managers/tools-and-shops)
+ - [Check out a member](/digital-makerspace/approvers/check-out-a-member)
+ - [Troubleshooting: checkouts](/digital-makerspace/troubleshooting/checkouts)
++
++## Group training plans and expiration
++
++Set **Checkout Training Plan URL** in the group editor to show a training link
++on group requests. Checkouts approved through that group use the tool’s current
++training link when set, otherwise the originating group’s current link. Moving
++a tool to another group does not replace the checkout’s originating group.
++Each included tool’s **Checkouts expire after** policy determines its date.
++Expired checkouts no longer satisfy prerequisites or new approver volunteering
++eligibility, but expiration alone does not delete explicit approver assignments.
+diff --git a/digital-makerspace/resource-managers/tools-and-shops.md b/digital-makerspace/resource-managers/tools-and-shops.md
+index 877c7ed..c63bbc8 100644
+--- a/digital-makerspace/resource-managers/tools-and-shops.md
++++ b/digital-makerspace/resource-managers/tools-and-shops.md
+@@ -110,3 +110,22 @@ To print only a QR code (for example for a label), use **QR Code** on the tool o
+ 
+ - [Tool groups and approvers](/digital-makerspace/resource-managers/tool-groups-and-approvers)
+ - [Requests, reminders and notifications](/digital-makerspace/approvers/requests-and-notifications)
++
++## Training plans and checkout expiration
++
++Tool creation and editing include **Checkout Training Plan URL** and
++**Checkouts expire after** (Never or 1–5 years). URLs must be absolute HTTP/HTTPS
++links. Expiration policy changes affect later approvals and reinstatements,
++not dates already assigned. Group approvals apply each included tool’s policy.
++
++Admins, board members, and the shop’s Resource Managers can select
++**Edit expiration** on a current non-revoked checkout. Choose any Eastern date,
++or Never. A past date expires the checkout immediately. If another change
++occurs while editing, refresh and review the updated record before saving again.
++
++For a selected tool, **Set checkout expirations** shows the tool and affected
++count. Choose a date later than today and confirm. Current expired and undated
++checkouts are included; revoked and superseded history are excluded. Changes
++are audited. Date changes do not automatically cancel existing reservations;
++those bookings are revalidated when edited. Ordinary approvers cannot change
++expiration settings or dates.
+diff --git a/digital-makerspace/slack/checkout-command.md b/digital-makerspace/slack/checkout-command.md
+index 28422ce..1112239 100644
+--- a/digital-makerspace/slack/checkout-command.md
++++ b/digital-makerspace/slack/checkout-command.md
+@@ -91,3 +91,11 @@ If you are checked out on a tool and know it well, run `/checkout volunteer` and
+ ## Related commands
+ 
+ Reservations use `/reserve` and volunteer tasks use `/volunteer`. They will have their own pages.
++
++## Training plans and expired checkouts
++
++Checkout request creation, your request details, and your checkout details show
++a clickable **Checkout training plan** link when configured. **View my checkouts**
++also includes expired checkouts and labels their expiration date. Expiration
++does not expose private tool notes through the old checkout. Use the Member
++Portal’s Expired filter and **Request renewal** to request another approval.
+diff --git a/digital-makerspace/troubleshooting/checkouts.md b/digital-makerspace/troubleshooting/checkouts.md
+index 213b5b8..f8e149c 100644
+--- a/digital-makerspace/troubleshooting/checkouts.md
++++ b/digital-makerspace/troubleshooting/checkouts.md
+@@ -152,3 +152,24 @@ The sign's QR code is a permanent short link. Short links cannot be created if t
+ ### Approvers cannot see or approve requests
+ 
+ Open **Tool Checkouts** > **Approvers** and tick their row and use the edit button to check their scope. Approval for a group needs a shop assignment or a group assignment, not just individual tools in the group.
++
++## Checkout expired or reservation ends after expiration
++
++A checkout is valid through its displayed date in Eastern time. Missing dates
++mean Never expires. Select **Expired** in your checkout list and use
++**Request renewal** when available, then complete any required training and wait
++for approval. If the checkout was revoked, contact an admin or board member.
++
++Reservation errors name checkouts that expire before the reservation ends,
++including shop and group prerequisites. Request renewal or choose an earlier
++end time. An end exactly at midnight after the expiration date is permitted.
++Existing bookings are not automatically canceled after expiration edits, but
++editing a booking rechecks its prerequisites. Cancellation remains available.
++
++## Checkout operations remain busy after a bulk expiration update
++
++A bulk update keeps the shop locked until its transaction finishes. If its
++worker crashes, ask an administrator to confirm the worker has stopped and
++recover the orphan catalog lock using the Rails jobs/services runbook. Do not
++clear a lock while an update may still be running. Failed transactions do not
++leave partially updated expiration dates or audits.

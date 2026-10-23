@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= page[:title] || "#{page[:name]} · Manchester Makerspace" %></title>
+    <%= stylesheet_link_tag "public_catalog" %>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+  </head>
+  <body>
+    <header>
+      <a href="https://manchestermakerspace.org"><%= image_tag "FilledLaserableLogo.svg", alt: "Manchester Makerspace", width: 180 %></a>
+    </header>
+    <main><article><%= yield %></article></main>
+    <footer>
+      <nav aria-label="Makerspace links" class="public-footer">
+        <% page[:footer_links].each do |link| %>
+          <%= link_to link[:url], aria: { label: link[:label] }, title: link[:label] do %>
+            <span class="material-symbols-rounded" aria-hidden="true"><%= link[:icon] %></span>
+          <% end %>
+        <% end %>
+      </nav>
+    </footer>
+  </body>
+</html>

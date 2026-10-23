@@ -16,7 +16,7 @@ class SlackMessagesJob < ApplicationJob
         keys.push(key)
       end
       send_slack_messages(messages, channel)
-      Redis.current.del(*keys)
+      REDIS.del(*keys)
     end
   end
 end

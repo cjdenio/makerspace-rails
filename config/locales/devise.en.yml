@@ -9,6 +9,8 @@ en:
     failure:
       already_authenticated: "You are already signed in."
       inactive: "Your account is not activated yet."
+      revoked: "Login failed, email board@manchestermakerspace.org with error code R2026"
+      suspended: "Your account is currently suspended"
       invalid: "Invalid %{authentication_keys} or password."
       locked: "Your account is locked."
       last_attempt: "You have one more attempt before your account is locked."

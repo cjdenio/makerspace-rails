@@ -26,6 +26,6 @@ class InvoiceOptionSerializer < ApplicationSerializer
 
   private
   def promotion_active
-    (!!object.promotion_end_date && object.promotion_end_date > DateTime.now)
+    object.promotion_active?
   end
 end

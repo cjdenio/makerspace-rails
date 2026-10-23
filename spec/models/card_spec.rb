@@ -54,6 +54,34 @@ RSpec.describe Card, type: :model do
         rejection_card.reload
         expect(rejection_card.holder).to eq(member.fullname)
       end
+
+      it "activates a pending member when their card is issued" do
+        pending_member = create(:member, :current, status: 'pending')
+
+        issued_card = create(:card, member: pending_member)
+
+        expect(pending_member.reload.status).to eq('activeMember')
+        expect(issued_card.reload.validity).to eq('activeMember')
+      end
+
+      it "activates a pending member without rerunning member validations after card insertion" do
+        pending_member = create(:member, :current, status: 'pending')
+        allow_any_instance_of(EmailDeliverabilityValidator).to receive(:validate_each) do |_validator, record, attribute, _value|
+          record.errors.add(attribute, 'is no longer deliverable')
+        end
+
+        expect do
+          create(:card, member: pending_member, uid: SecureRandom.hex(6))
+        end.to change(Card, :count).by(1)
+
+        expect(pending_member.reload.status).to eq('activeMember')
+      end
+
+      it "enqueues MemberProvisioningJob when a new card is created" do
+        expect do
+          create(:card, member: member, uid: SecureRandom.hex(6))
+        end.to have_enqueued_job(MemberProvisioningJob).with(member.id.to_s)
+      end
     end
 
     describe "on update" do
@@ -61,6 +89,21 @@ RSpec.describe Card, type: :model do
         card.update({ member: expired_member})
         expect(card.expiry).to eq(expired_member.expirationTime)
         expect(card.validity).to eq(expired_member.status)
+      end
+
+      it "enqueues MemberProvisioningJob for a direct card update" do
+        card # force lazy creation before the expect block, so its own
+             # after_create enqueue isn't counted alongside the update's
+        expect do
+          card.update(card_location: 'lost')
+        end.to have_enqueued_job(MemberProvisioningJob).with(member.id.to_s)
+      end
+
+      it "does not enqueue MemberProvisioningJob when skip_provisioning_enqueue is set (the Member#update_card cascade)" do
+        card.skip_provisioning_enqueue = true
+        expect do
+          card.update(expiry: 1.month.from_now.to_i * 1000)
+        end.not_to have_enqueued_job(MemberProvisioningJob)
       end
     end
   end

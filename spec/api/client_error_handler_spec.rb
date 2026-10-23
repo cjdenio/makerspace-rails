@@ -5,19 +5,9 @@ describe 'ClientErrorHandler API', type: :request do
     post 'Sends a slack message' do 
       tags 'ClientErrorHandler'
       operationId 'message'
+      consumes 'application/json'
 
       parameter name: :messageDetails, in: :body, schema: {
-        title: :messageDetails,
-        type: :object,
-        properties: {
-          message: {
-            type: :string
-          }
-        },
-        required: [:message]
-      }
-
-      request_body_json schema: {
         title: :messageDetails,
         type: :object,
         properties: {

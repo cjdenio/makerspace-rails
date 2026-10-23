@@ -21,6 +21,9 @@ describe 'Billing::Transactions API', type: :request do
       parameter name: :transactionStatus, in: :query, schema: { type: :array, items: { type: :string } }, required: false
       parameter name: :discountId, in: :query, schema: { type: :array, items: { type: :string } }, required: false
       parameter name: :customerId, in: :query, type: :string, required: false
+      parameter name: :minAmount, in: :query, type: :number, required: false
+      parameter name: :maxAmount, in: :query, type: :number, required: false
+      parameter name: :limit, in: :query, schema: { type: :integer, minimum: 1, maximum: 500 }, required: false
 
       response '200', 'transactions found' do 
         let(:t1) { build(:credit_card_transaction, member_id: basic.id) }
@@ -34,7 +37,7 @@ describe 'Billing::Transactions API', type: :request do
           [i1, i2, i3]
           transactions = [t1, t2, t3]
           sign_in admin
-          allow(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, anything).and_return(transactions)
+          allow(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, anything, anything, nil).and_return(transactions)
         end
 
         schema type: :array,

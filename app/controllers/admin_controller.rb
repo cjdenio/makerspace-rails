@@ -4,6 +4,6 @@ class AdminController < ApplicationController
 
   private
   def authorized?
-    raise ::Error::Forbidden.new unless is_admin?
+    raise ::Error::Forbidden.new unless is_admin? || is_board_member?
   end
 end

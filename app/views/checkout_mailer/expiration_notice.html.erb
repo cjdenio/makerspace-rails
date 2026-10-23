@@ -1,0 +1,13 @@
+<h1><%= @heading %></h1>
+<p>Hello <%= @member.firstname %>,</p>
+<ul>
+  <% @rows.each do |row| %>
+    <li><strong><%= row[:name] %></strong> — <%= row[:shop] %>: <%= row[:expires_on] %>
+      <% if row[:training_url].present? && PublicCatalog.safe_url(row[:training_url]) %>
+        <%= link_to 'Checkout training plan', row[:training_url] %>
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+<p>Checkouts remain valid through the listed date (Eastern time). Expired checkouts no longer satisfy reservation or training prerequisites.</p>
+<p><%= link_to 'Request checkout renewal in the Member Portal', @portal_url %></p>

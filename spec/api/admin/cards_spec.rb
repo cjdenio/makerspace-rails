@@ -8,6 +8,7 @@ describe 'Admin::AccessCards API', type: :request do
     get 'Initiate new card creation' do 
       tags 'Cards'
       operationId "adminGetNewCard"
+      consumes 'application/json'
       response '200', 'Card intilized' do 
         before do 
           sign_in admin 
@@ -36,6 +37,7 @@ describe 'Admin::AccessCards API', type: :request do
     get 'Gets a list of members cards' do 
       tags 'Cards'
       operationId "adminListCards"
+      consumes 'application/json'
       parameter name: :memberId, in: :query, type: :string, required: true
 
       response '200', 'cards found' do 
@@ -69,29 +71,35 @@ describe 'Admin::AccessCards API', type: :request do
       end
     end
 
-    post 'Creates an access card' do 
+    post 'Creates an access card (active admin or board member)' do
       tags 'Cards'
       operationId "adminCreateCard"
+      consumes 'application/json'
       parameter name: :createAccessCardDetails, in: :body, schema: {
         title: :createAccessCardDetails,
         type: :object,
         properties: {
           memberId: { type: :string },
-          uid: { type: :string },
+          uid: { type: :string, description: 'Uppercase hexadecimal ASCII byte pairs, or an exact UID from a recent unclaimed reader rejection. All assignments require an active admin or board member.' },
+          source: { type: :string, description: 'Audit-only client-reported UID source: nfc or import. Missing/unknown values are recorded as unspecified. Never affects authorization or UID validation; import eligibility comes from server-side reader rejection records.' },
         },
         required: [:memberId, :uid]
       }, required: true
 
-      request_body_json schema: {
-        title: :createAccessCardDetails,
-        name: :createAccessCardDetails,
-        type: :object,
-        properties: {
-          memberId: { type: :string },
-          uid: { type: :string },
-        },
-        required: [:memberId, :uid]
-      }, required: true
+      response '409', 'UID already registered; existing cards remain unchanged' do
+        before { sign_in admin; create(:card, uid: '1B1A4D2F', member: basic) }
+        let(:createAccessCardDetails) { { memberId: basic.id, uid: '1B1A4D2F' } }
+        run_test!(requires_transactions: true)
+      end
+
+      response '503', 'Transactional card storage unavailable' do
+        before do
+          sign_in admin
+          allow(CardManagement).to receive(:assign!).and_raise(CardManagement::Unavailable, 'Unavailable')
+        end
+        let(:createAccessCardDetails) { { memberId: basic.id, uid: '1B1A4D2F' } }
+        run_test!
+      end
 
       response '200', 'access card created' do 
         before { sign_in admin }
@@ -100,10 +108,10 @@ describe 'Admin::AccessCards API', type: :request do
 
         let(:createAccessCardDetails) {{
           memberId: basic.id,
-          uid: "12ggh34"
+          uid: "12AB34"
         }}
 
-        run_test!
+        run_test!(requires_transactions: true)
       end
 
       response '403', 'User unauthorized' do 
@@ -111,7 +119,7 @@ describe 'Admin::AccessCards API', type: :request do
         schema '$ref' => '#/components/schemas/error'
         let(:createAccessCardDetails) {{
           memberId: basic.id,
-          uid: "12ggh34"
+          uid: "12AB34"
         }}
         run_test!
       end
@@ -120,16 +128,16 @@ describe 'Admin::AccessCards API', type: :request do
         schema '$ref' => '#/components/schemas/error'
         let(:createAccessCardDetails) {{
           memberId: basic.id,
-          uid: "12ggh34"
+          uid: "12AB34"
         }}
         run_test!
       end
 
-      response '422', 'missing parameter' do 
+      response '422', 'Missing parameter or UID is neither canonical nor a recent unclaimed reader import' do
         before { sign_in admin }
         schema '$ref' => '#/components/schemas/error'
         let(:createAccessCardDetails) {{
-          uid: "12ggh34"
+          uid: "12AB34"
         }}
         run_test!
       end
@@ -139,9 +147,9 @@ describe 'Admin::AccessCards API', type: :request do
         schema '$ref' => '#/components/schemas/error'
         let(:createAccessCardDetails) {{
           memberId: 'invalid',
-          uid: "12ggh34"
+          uid: "12AB34"
         }}
-        run_test!
+        run_test!(requires_transactions: true)
       end
     end
   end
@@ -150,18 +158,10 @@ describe 'Admin::AccessCards API', type: :request do
     put 'Updates a card' do 
       tags 'Cards'
       operationId "adminUpdateCard"
+      consumes 'application/json'
       parameter name: :id, in: :path, type: :string
 
       parameter name: :updateAccessCardDetails, in: :body, schema: {
-        title: :updateAccessCardDetails,
-        type: :object,
-        properties: {
-          cardLocation: { type: :string }
-        },
-        required: [:cardLocation]
-      }, required: true
-
-      request_body_json schema: {
         title: :updateAccessCardDetails,
         type: :object,
         properties: {

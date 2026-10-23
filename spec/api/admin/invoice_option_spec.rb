@@ -8,13 +8,9 @@ describe 'Admin::InvoiceOptions API', type: :request do
     post 'Creates an invoice option' do
       tags 'InvoiceOptions'
       operationId "adminCreateInvoiceOption"
+      consumes 'application/json'
 
       parameter name: :createInvoiceOptionDetails, in: :body, schema: {
-        title: :createInvoiceOptionDetails,
-        '$ref' => '#/components/schemas/NewInvoiceOption'  
-      }, required: true
-
-      request_body_json schema: {
         title: :createInvoiceOptionDetails,
         '$ref' => '#/components/schemas/NewInvoiceOption'  
       }, required: true
@@ -69,14 +65,10 @@ describe 'Admin::InvoiceOptions API', type: :request do
     put 'Updates an invoice option' do
       tags 'InvoiceOptions'
       operationId "adminUpdateInvoiceOption"
+      consumes 'application/json'
       parameter name: :id, in: :path, type: :string
 
       parameter name: :updateInvoiceOptionDetails, in: :body, schema: {
-        title: :updateInvoiceOptionDetails, 
-        '$ref' => '#/components/schemas/InvoiceOption' 
-      }, required: true
-
-      request_body_json schema: {
         title: :updateInvoiceOptionDetails, 
         '$ref' => '#/components/schemas/InvoiceOption' 
       }, required: true

@@ -53,6 +53,9 @@ RSpec.describe Billing::TransactionsController, type: :controller do
   }
 
   before(:each) do
+    cache = {}
+    allow(REDIS).to receive(:set) { |key, value| cache[key] = value; "OK" }
+    allow(REDIS).to receive(:get) { |key| cache[key] }
     create(:billing_permission, member: member)
     create(:billing_permission, member: non_customer)
     allow_any_instance_of(Service::BraintreeGateway).to receive(:connect_gateway).and_return(gateway)
@@ -159,6 +162,18 @@ RSpec.describe Billing::TransactionsController, type: :controller do
       expect(parsed_response['id']).to eq(transaction.id)
     end
 
+    %w[member admin].each do |role|
+      it "rejects another member's invoice before payment even for a #{role}" do
+        member.update!(role: role)
+        other_invoice = create(:invoice, member: non_customer)
+        allow(BraintreeService::PaymentMethod).to receive(:find_payment_method_for_customer).and_return(true)
+        expect(InvoiceHelper).not_to receive(:pay_workflow)
+        post :create, params: { payment_method_id: "foo", invoice_id: other_invoice.id.to_s }, format: :json
+        expect(response).to have_http_status(:not_found)
+        expect(other_invoice.reload.settled).to eq(false)
+      end
+    end
+
     it "settles the invoice" do 
       allow(BraintreeService::PaymentMethod).to receive(:find_payment_method_for_customer).and_return(payment_method)
       allow(invoice).to receive(:submit_for_settlement).with(gateway, "foo").and_return(transaction)
@@ -187,8 +202,8 @@ RSpec.describe Billing::TransactionsController, type: :controller do
     let(:related_invoice) { create(:invoice, transaction_id: transaction.id) }
     it "renders a list of transactions" do 
       related_invoice # call to initialize
-      allow(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, anything).and_return([transaction])
-      expect(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, anything).and_return([transaction])
+      allow(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, anything, anything).and_return([transaction])
+      expect(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, anything, anything).and_return([transaction])
       
       get :index, format: :json
       parsed_response = JSON.parse(response.body)
@@ -197,12 +212,27 @@ RSpec.describe Billing::TransactionsController, type: :controller do
       expect(parsed_response.first['invoice']['id']).to eq(related_invoice.id.to_s)
     end
 
-    it "renders error about no customer" do 
+    it "renders error about no customer" do
       sign_in non_customer
       get :index, format: :json
       parsed_response = JSON.parse(response.body)
       expect(response).to have_http_status(403)
       expect(parsed_response['message']).to match(/customer/i)
+    end
+
+    it "applies amount filters sent as camelCase (React's raw-request escape hatch)" do
+      amount_search = double
+      search = double(amount: amount_search, customer_id: double(is: nil))
+
+      expect(amount_search).to receive(:between).with("10.25", "99.50")
+      expect(BraintreeService::Transaction).to receive(:get_transactions).with(gateway, kind_of(Proc), 50) do |_gateway, query, _limit|
+        query.call(search)
+        []
+      end
+
+      get :index, params: { minAmount: "10.25", maxAmount: "99.50" }, format: :json
+
+      expect(response).to have_http_status(200)
     end
   end
 

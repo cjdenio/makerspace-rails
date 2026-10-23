@@ -3,13 +3,22 @@ class InvoiceOptionsController < ApplicationController
   before_action :find_invoice_option, only: [:show]
 
   def index
-    enabled_options = (is_admin? || invoice_option_params[:only_enabled]) ? InvoiceOption.all : InvoiceOption.where(disabled: false)
+    # only_enabled always excludes disabled options, even for admins -- admin screens
+    # that manage options (rather than pick one to attach elsewhere) omit it to see everything.
+    enabled_options = (invoice_option_params[:only_enabled] || !is_admin?) ? InvoiceOption.where(disabled: false) : InvoiceOption.all
     if invoice_option_params[:subscription_only]
       enabled_options = enabled_options.where({ :plan_id.nin => ["", nil] })
     end
     invoice_option_types = invoice_option_params[:types]
     invoice_options = invoice_option_types ? enabled_options.where(:resource_class.in => invoice_option_types) : enabled_options
     render_with_total_items(invoice_options, { each_serializer: InvoiceOptionSerializer, adapter: :attributes })
+  end
+
+  def signup
+    render_with_total_items(
+      InvoiceOption.signup_eligible,
+      { each_serializer: InvoiceOptionSerializer, adapter: :attributes }
+    )
   end
 
   def show

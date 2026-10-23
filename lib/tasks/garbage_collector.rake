@@ -1,13 +1,12 @@
-desc "Clean up old invoicing redis keys"
-task :gc => :environment do 
-    begin
-        last_month = Time.now - 30.days 
-        InvoiceHelper.clean_cache(last_month)
-        slack_message = "Pruned Redis invoicing cache from last month."
-    rescue => e 
-        error = "#{e.message}\n#{e.backtrace.inspect}"
-        slack_message = "Error cleaning Redis: #{error}"
-    end
+desc "Clean up old invoicing redis keys.
+      Run daily by the Heroku scheduler add-on; only does real work on the
+      day of month configured via SystemConfig::GARBAGE_COLLECT_DAY.
+      Use the admin Jobs 'Run Now' button to run on demand regardless of day."
+task :gc => :environment do
+  unless SystemConfig.scheduled_day_matches?(SystemConfig::GARBAGE_COLLECT_DAY)
+    puts "[Garbage Collector] Skipping -- not the configured day of month"
+    next
+  end
 
-  ::Service::SlackConnector.send_slack_message(slack_message, ::Service::SlackConnector.logs_channel)
+  GarbageCollectJob.perform_now
 end

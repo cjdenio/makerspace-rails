@@ -3,7 +3,10 @@ module InvoiceableResource
 
   included do
     def execute_operation(operation, invoice)
+      self.current_invoice_operation = invoice if respond_to?(:current_invoice_operation=)
       result = self.try(operation, invoice.quantity)
+    ensure
+      self.current_invoice_operation = nil if respond_to?(:current_invoice_operation=)
     end
 
     def reverse_operation(operation, invoice)

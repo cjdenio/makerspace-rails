@@ -1,6 +1,15 @@
 <% type = @invoice.resource_class %>
 <% isMembership = type == "member" %>
-<% friendly_type = isMembership ? 'membership' : 'rental' %>
+<% isRental = type == "rental" %>
+<% isFee = type == "fee" %>
+<%
+  friendly_type = case type
+    when "member" then "membership"
+    when "rental" then "rental"
+    when "fee"    then "shop charge"
+    else type
+  end
+%>
   <table style="border-collapse: collapse; width: 100%">
     <tbody>
       <!-- date -->
@@ -23,8 +32,8 @@
           </td>
         </tr>
       <% end %>
-      <!-- name -->
-      <%unless @invoice.resource.nil? %>
+      <!-- name — skip for fee invoices, the description row covers it -->
+      <% unless @invoice.resource.nil? || isFee %>
         <tr>
           <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
             <%=friendly_type.titleize%>
@@ -32,73 +41,80 @@
           <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
             <%= isMembership ? @invoice.resource.fullname : @invoice.resource.number %>
           </td>
-      </tr>
-    <% end %>
-    <!-- expiration -->
-    <tr>
-      <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
-        <%=friendly_type.titleize%> expiration
-      </td>
-      <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
-        <% if @invoice.resource_class == "member" && @invoice.resource.try(:get_expiration).nil? %>
-          Membership expires <%= @invoice.quantity %> month(s) after receiving key fob.
-        <% elsif !@invoice.resource.nil? %>
-          <%=@invoice.resource.pretty_time.strftime("%m/%d/%Y")%>
-        <% end %>  
-      </td>
-    </tr>
-    <!-- description -->
-    <tr>
-      <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
-        Description
-      </td>
-      <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
-        <%=@invoice.name%>
-      </td>
-    </tr>
-    <% if @subscription %>
-      <!-- first payment -->
+        </tr>
+      <% end %>
+      <!-- expiration — only meaningful for membership and rental -->
+      <% unless isFee %>
+        <tr>
+          <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
+            <%=friendly_type.titleize%> expiration
+          </td>
+          <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
+            <% if isMembership && @invoice.resource.try(:get_expiration).nil? %>
+              Membership expires <%= @invoice.quantity %> month(s) after receiving key fob.
+            <% elsif !@invoice.resource.nil? %>
+              <%=@invoice.resource.pretty_time.strftime("%m/%d/%Y")%>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+      <!-- description -->
       <tr>
         <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
-          Billing Period Start Date
+          Description
         </td>
         <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
-          <%=::Util.date_as_string(@subscription.billing_period_start_date)%>
+          <%=@invoice.name%>
         </td>
       </tr>
-      <!-- next payment -->
+      <% if @subscription %>
+        <!-- first payment -->
+        <tr>
+          <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
+            Billing Period Start Date
+          </td>
+          <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
+            <%=::Util.date_as_string(@subscription.billing_period_start_date)%>
+          </td>
+        </tr>
+        <!-- next payment -->
+        <tr>
+          <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
+            Billing Period End Date
+          </td>
+          <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
+            <%=::Util.date_as_string(@subscription.billing_period_end_date)%>
+          </td>
+        </tr>
+      <% end %>
+      <!-- Payment method -->
       <tr>
         <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
-          Billing Period End Date
+          Payment Method
         </td>
         <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
-          <%=::Util.date_as_string(@subscription.billing_period_end_date)%>
+          <%
+            description = if @payment_method.try(:card_type)
+              "#{@payment_method.card_type} ending in #{@payment_method.last_4}"
+            elsif @payment_method.try(:username)
+              "Venmo account @#{@payment_method.username}"
+            else
+              "PayPal account #{@payment_method.try(:payer_email) || @payment_method.try(:email)}"
+            end
+          %>
+          <img style="float: left; margin-right: 1em;" src=<%=@payment_method.image_url%> />
+          <span style="line-height: 2.5em;"><%=description%></span>
         </td>
       </tr>
-    <% end %>
-    <!-- Payment method -->
-    <tr>
-      <td style="border-top: 1px solid black; border-left: 1px solid black; padding: 0.5em">
-        Payment Method
-      </td>
-      <td style="border-top: 1px solid black; border-right: 1px solid black; padding: 0.5em">
-        <% 
-          description = @payment_method.try(:card_type) ? "#{@payment_method.card_type} ending in #{@payment_method.last_4}" : 
-            "Paypal account #{@payment_method.try(:payer_email) || @payment_method.try(:email)}" 
-        %>
-        <img style="float: left; margin-right: 1em;" src=<%=@payment_method.image_url%> />
-        <span style="line-height: 2.5em;"><%=description%></span>
-      </td>
-    </tr>
-    <!-- amount -->
-    <tr>
-      <td style="border: 1px solid black; border-right: none; padding: 0.5em">
-      <%= @invoice.plan_id ? "Recurring Payment Amount" : "Amount"%>
-      </td>
-      <td style="border: 1px solid black; border-left: none; padding: 0.5em">
-        $<%= @invoice.amount.truncate.to_s + '.' + sprintf('%02d', (BigDecimal(@invoice.amount.to_s).frac * 100).truncate) %>
-      </td>
-    </tr>
-  </tbody>
-</table>
+      <!-- amount -->
+      <tr>
+        <td style="border: 1px solid black; border-right: none; padding: 0.5em">
+        <%= @invoice.plan_id ? "Recurring Payment Amount" : "Amount"%>
+        </td>
+        <td style="border: 1px solid black; border-left: none; padding: 0.5em">
+          $<%= @invoice.amount.truncate.to_s + '.' + sprintf('%02d', (BigDecimal(@invoice.amount.to_s).frac * 100).truncate) %>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 <br />

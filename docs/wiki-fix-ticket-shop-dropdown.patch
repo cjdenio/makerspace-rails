@@ -1,0 +1,21 @@
+diff --git a/digital-makerspace/members/report-a-problem.md b/digital-makerspace/members/report-a-problem.md
+--- a/digital-makerspace/members/report-a-problem.md
++++ b/digital-makerspace/members/report-a-problem.md
+@@ -65,7 +65,7 @@
+ 
+ Type these in any Slack channel. The answers are private to you.
+ 
+-- **/fix new** opens the report form. In a shop's channel it fills in that shop for you.
++- **/fix new** or **/fix-tickets new** opens the report form. **Shop (optional)** is a dropdown already filled with all non-hidden shops in alphabetical order. **No Shop Selected** is the first choice. In a matching shop channel, that shop is selected automatically; otherwise **No Shop Selected** is selected. You can change the selection, including choosing no shop. Selecting a catalog tool still uses that tool's shop.
+ - **/fix mine** lists your reports.
+ - **/fix public** lists public tickets.
+ - **/fix 2** opens ticket number 2.
+@@ -81,7 +81,7 @@
+ | --- | --- |
+ | The Title is rejected | Use only letters, numbers, spaces and . , _ ( ) / - . |
+ | You cannot submit a report | You may have reached your limit of open reports, or a required field is empty. |
+-| You cannot choose a shop or tool | Some are hidden from members. Describe the problem in the Description instead. |
++| You cannot choose a shop or tool | The Slack report form lists all non-hidden shops without a search. If you have an older form open and its Shop search says "Nothing could be found", close it and run **/fix-tickets new** again. If the shop is hidden or no shop applies, leave **No Shop Selected** and describe the location in **Description**. Some tools are hidden from members. |
+ | Nobody has answered | Add a note, or ask in the shop's Slack channel. |
+ 
+ More help: [Troubleshooting](/digital-makerspace/troubleshooting).

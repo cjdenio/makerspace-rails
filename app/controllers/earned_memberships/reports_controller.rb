@@ -1,6 +1,7 @@
 class EarnedMemberships::ReportsController < AuthenticationController
   include FastQuery::MongoidQuery
   before_action :verify_earned_member
+  before_action :verify_earned_member_active, only: [:create]
 
   def index
     @reports = EarnedMembership::Report.where(earned_membership_id: current_member.earned_membership.id)
@@ -27,5 +28,12 @@ class EarnedMemberships::ReportsController < AuthenticationController
 
   def verify_earned_member
     raise ::Error::Forbidden.new() unless current_member.earned_membership?
+  end
+
+  # Suspended members can still view their own report history (verify_earned_member
+  # above), but shouldn't be able to submit new reports toward a deactivated
+  # earned membership -- see #257.
+  def verify_earned_member_active
+    raise ::Error::Forbidden.new() unless current_member.earned_membership&.active?
   end
 end

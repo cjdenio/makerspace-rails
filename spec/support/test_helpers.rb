@@ -1,4 +1,13 @@
 module TestHelpers
+  def require_env!(key)
+    value = ENV[key]
+    if value.blank?
+      puts "[SKIP] #{key} is not set"
+      skip "#{key} is not set"
+    end
+    value
+  end
+
   def clear_email
     Dir.mkdir('tmp') unless Dir.exist?('tmp')
     Dir.mkdir('tmp/mail') unless Dir.exist?('tmp/mail')

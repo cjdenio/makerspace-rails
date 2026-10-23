@@ -1,0 +1,2 @@
+# Place this in both repositories to anchor the agent's root logic
+project_root_markers = [".git"]

@@ -5,6 +5,7 @@ describe 'Rentals API', type: :request do
     get 'Gets a list of rentals' do 
       tags 'Rentals'
       operationId "listRentals"
+      consumes 'application/json'
       parameter name: :pageNum, in: :query, type: :number, required: false
       parameter name: :orderBy, in: :query, type: :string, required: false
       parameter name: :order, in: :query, type: :string, required: false
@@ -25,6 +26,7 @@ describe 'Rentals API', type: :request do
     get 'Gets a rental' do 
       tags 'Rentals'
       operationId "getRental"
+      consumes 'application/json'
       parameter name: :id, in: :path, type: :string
 
       response '200', 'rental found' do
@@ -54,17 +56,9 @@ describe 'Rentals API', type: :request do
     put 'Updates a rental and uploads signature' do
       tags 'Rentals'
       operationId "updateRental"
+      consumes 'application/json'
       parameter name: :id, in: :path, type: :string
       parameter name: :updateRentalDetails, in: :body, schema: {
-        title: :updateRentalDetails,
-        type: :object,
-        properties: {
-          signature: { type: :string }
-        },
-        required: [:signature]
-      }, required: true
-
-      request_body_json schema: {
         title: :updateRentalDetails,
         type: :object,
         properties: {
@@ -78,7 +72,7 @@ describe 'Rentals API', type: :request do
 
       response '200', 'rental updated' do
         let(:current_member) { create(:member) }
-        let(:rental) { create(:rental, member: current_member) }
+        let(:rental) { create(:rental, member: current_member, status: "pending_agreement") }
         before { sign_in current_member }
 
         schema '$ref' => '#/components/schemas/Rental'

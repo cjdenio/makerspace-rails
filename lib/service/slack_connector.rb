@@ -1,108 +1,572 @@
+require 'active_support/parameter_filter'
+
 module Service
   module SlackConnector
+    mattr_accessor :slack_team_id
+    SLACK_RATE_LIMIT_MAX_RETRIES = 5
+
     def enque_message(
-        message, 
+        message,
         channel = ::Service::SlackConnector.members_relations_channel,
         uniquifier = ::Service::SlackConnector.request_caller_id(caller_locations(1,1)[0].label)
       )
       ::Service::SlackConnector.enque_message(message, channel, uniquifier)
     end
-
     def self.enque_message(
-        message, 
+        message,
         channel = members_relations_channel,
         uniquifier = request_caller_id(caller_locations(1,1)[0].label)
       )
-      Redis.current.set(uniquifier, {
+      REDIS.set(uniquifier, {
         message: message,
         channel: channel,
         timestamp: Time.now
       }.to_json)
     end
-
     def get_enqueued_messages(uniquifier)
       ::Service::SlackConnector.get_enqueued_messages(uniquifier)
     end
-
     def self.get_enqueued_messages(uniquifier)
-      related_keys = Redis.current.keys(uniquifier)
-      related_keys.reduce({}) { |msg_hash, key| msg_hash.merge({ key => Redis.current.get(key) }) }
+      related_keys = REDIS.keys(uniquifier)
+      related_keys.reduce({}) { |msg_hash, key| msg_hash.merge({ key => REDIS.get(key) }) }
     end
-
     def send_slack_messages(messages, channel = ::Service::SlackConnector.members_relations_channel)
       ::Service::SlackConnector.send_slack_messages(messages, channel)
     end
-
     def self.send_slack_messages(messages, channel = ::Service::SlackConnector.members_relations_channel)
-      send_slack_message(format_slack_messages(messages, channel), channel) unless messages.nil? || messages.empty?
+      send_slack_message(format_slack_messages(messages, channel), channel) unless messages.nil? || messages.empty? || Rails.env.test?
     end
-
     def send_slack_message(message, channel = ::Service::SlackConnector.members_relations_channel)
       ::Service::SlackConnector.send_slack_message(message, channel)
     end
-
     def self.send_slack_message(message, channel = ::Service::SlackConnector.members_relations_channel)
+      return if Rails.env.test?
       send_as_msg = message.kind_of?(String)
-      if send_as_msg
-        client.chat_postMessage(
+      begin
+        if send_as_msg
+          client.chat_postMessage(
+            channel: safe_channel(channel),
+            text: message,
+            as_user: false,
+            username: 'MemberPortalBot',
+            icon_emoji: ':ghost:'
+          )
+        else
+          client.chat_postMessage(
+            channel: safe_channel(channel),
+            blocks: message,
+            as_user: false,
+            username: 'MemberPortalBot',
+            icon_emoji: ':ghost:'
+          )
+        end
+      rescue Slack::Web::Api::Errors::SlackError
+        begin
+          if send_as_msg
+            client.chat_postMessage(
+              channel: safe_channel(channel),
+              text: message
+            )
+          else
+            client.chat_postMessage(
+              channel: safe_channel(channel),
+              blocks: message
+            )
+          end
+        rescue Slack::Web::Api::Errors::SlackError => e
+          if e.is_a?(Slack::Web::Api::Errors::MissingScope)
+            $stderr.puts("[SlackMissingScope] #{format_api_error(e)}")
+          end
+          raise
+        end
+      end
+    end
+    def self.update_slack_message(channel, ts, message, resolved_channel: false)
+      return if Rails.env.test?
+      # A posted-message receipt already identifies the actual conversation,
+      # including Slack's ID for the redirected test_channel. Callers using
+      # that ID must also verify the receipt's destination mode before editing.
+      client.chat_update(channel: resolved_channel ? channel : safe_channel(channel), ts: ts, text: message)
+    end
+    def self.message_destination_mode
+      ENV['SLACK_ENV'] == 'production' ? 'production' : 'test'
+    end
+    def self.open_modal(trigger_id, view)
+      return if Rails.env.test?
+      client.views_open(trigger_id: trigger_id, view: view)
+    end
+    def self.update_modal(view_id, view, hash: nil)
+      return if Rails.env.test?
+      client.views_update(view_id: view_id, hash: hash, view: view)
+    end
+    def self.pin_slack_message(channel, ts)
+      return if Rails.env.test?
+      return if ts.blank?
+
+      client.pins_add(channel: safe_channel(channel), timestamp: ts)
+    end
+    def self.delete_slack_message(channel, ts, resolved_channel: false)
+      return if Rails.env.test?
+      client.chat_delete(channel: resolved_channel ? channel : safe_channel(channel), ts: ts)
+    end
+
+    def self.schedule_slack_message(channel:, text:, post_at:)
+      with_rate_limit_retry("chat.scheduleMessage") do
+        response = client.chat_scheduleMessage(
           channel: safe_channel(channel),
-          text: message,
-          as_user: false,
-          username: 'Management Bot',
-          icon_emoji: ':ghost:'
+          text: text,
+          post_at: post_at.to_i
         )
-      else 
-        client.chat_postMessage(
+        response.scheduled_message_id
+      end
+    end
+
+    def self.delete_scheduled_slack_message(channel:, scheduled_message_id:)
+      with_rate_limit_retry("chat.deleteScheduledMessage") do
+        client.chat_deleteScheduledMessage(
           channel: safe_channel(channel),
-          blocks: message,
-          as_user: false,
-          username: 'Management Bot',
-          icon_emoji: ':ghost:'
+          scheduled_message_id: scheduled_message_id
         )
       end
     end
 
+    def self.find_channel_id(channel_name, on_channel_not_found: nil)
+      # The normalize_name function forces channel_name into either C0123456789 form or '#human-readable' form
+      requested = Service::SlackChannelCache.normalize_name(channel_name)
+      return if requested.blank?
+      operation = Service::SlackChannelCache.channel_id?(requested) ? 'conversations.info' : 'conversations.list'
+
+      cached = Service::SlackChannelCache.fetch(requested)
+      return cached[:id] if cached&.dig(:id).present?
+
+      if Service::SlackChannelCache.channel_id?(requested)
+        response = with_rate_limit_retry("conversations.info") do
+          client.conversations_info(channel: requested)
+        end
+        channel = response.channel
+        return channel.id unless channel.respond_to?(:is_archived) && channel.is_archived
+        return
+      end
+
+      cursor = nil
+      loop do
+        response = with_rate_limit_retry("conversations.list") do
+          client.conversations_list(
+            types: 'public_channel,private_channel',
+            exclude_archived: true,
+            limit: 200,
+            cursor: cursor
+          )
+        end
+        channel = Array(response.channels).find do |candidate|
+          Service::SlackChannelCache.normalize_name(candidate.name) == requested
+        end
+        return channel.id if channel
+
+        cursor = response.response_metadata&.next_cursor.to_s
+        break if cursor.blank?
+      end
+      nil
+    rescue Slack::Web::Api::Errors::ChannelNotFound => error
+      if on_channel_not_found
+        on_channel_not_found.call(error)
+      else
+        report_channel_not_found(requested, error, operation: operation)
+      end
+      nil
+    end
+
+    def self.create_canvas(title, channel_id: nil)
+      with_rate_limit_retry("canvases.create") do
+        arguments = { title: title }
+        arguments[:channel_id] = channel_id if channel_id.present?
+        client.canvases_create(**arguments).canvas_id
+      end
+    end
+
+    def self.set_canvas_channel_access(canvas_id, channel_id)
+      with_rate_limit_retry("canvases.access.set channel read") do
+        client.canvases_access_set(
+          canvas_id: canvas_id,
+          access_level: 'read',
+          # slack-ruby-client 2.7.0 does not JSON-encode this array even though
+          # Slack expects an array-valued JSON parameter.
+          channel_ids: JSON.generate([channel_id])
+        )
+      end
+    end
+
+    def self.set_canvas_user_access(canvas_id, user_ids, access_level:)
+      ids = Array(user_ids).map(&:to_s).reject(&:blank?).uniq
+      return if ids.empty?
+
+      with_rate_limit_retry("canvases.access.set user #{access_level}") do
+        client.canvases_access_set(
+          canvas_id: canvas_id,
+          access_level: access_level,
+          user_ids: JSON.generate(ids)
+        )
+      end
+    end
+
+    def self.rename_canvas(canvas_id, title)
+      with_rate_limit_retry("canvases.edit rename") do
+        client.canvases_edit(canvas_id: canvas_id, changes: JSON.generate([
+          { operation: 'rename', title_content: { type: 'markdown', markdown: title } }
+        ]))
+      end
+    end
+
+    def self.replace_canvas(canvas_id, markdown)
+      changes = [
+        {
+          operation: 'replace',
+          document_content: {
+            type: 'markdown',
+            markdown: markdown
+          }
+        }
+      ]
+      with_rate_limit_retry("canvases.edit") do
+        client.canvases_edit(
+          canvas_id: canvas_id,
+          # See set_canvas_channel_access: nested Canvas parameters must be
+          # explicitly JSON-encoded with the currently bundled Slack client.
+          changes: JSON.generate(changes)
+        )
+      end
+    end
+
+    def self.lookup_canvas_sections(canvas_id, contains_text:, section_types: nil)
+      criteria = { contains_text: contains_text }
+      criteria[:section_types] = Array(section_types) if section_types.present?
+      response = with_rate_limit_retry("canvases.sections.lookup") do
+        client.canvases_sections_lookup(
+          canvas_id: canvas_id,
+          criteria: JSON.generate(criteria)
+        )
+      end
+      response.respond_to?(:sections) ? response.sections : response["sections"]
+    end
+
+    def self.edit_canvas(canvas_id, changes)
+      with_rate_limit_retry("canvases.edit") do
+        client.canvases_edit(
+          canvas_id: canvas_id,
+          changes: JSON.generate(changes)
+        )
+      end
+    end
+
+    def self.with_rate_limit_retry(operation, max_retries: SLACK_RATE_LIMIT_MAX_RETRIES)
+      retries = 0
+      begin
+        yield
+      rescue Slack::Web::Api::Errors::TooManyRequestsError => error
+        raise if retries >= max_retries
+
+        retries += 1
+        retry_after = error.retry_after.to_i
+        message = "[SlackRateLimited] operation=#{operation.inspect} " \
+          "retry=#{retries}/#{max_retries} retry_after=#{retry_after}"
+        $stderr.puts(message)
+        Rails.logger.warn(message)
+        sleep(retry_after)
+        retry
+      end
+    end
+
+    def self.format_api_error(error, request: nil)
+      details = "#{error.class}: #{error.message.to_s.gsub(/\s+/, ' ').strip}"
+      response = error.respond_to?(:response) ? error.response : nil
+      status = response.respond_to?(:status) ? response.status : nil
+      body = response.respond_to?(:body) ? response.body : response
+
+      [
+        details,
+        ("slack_request=#{JSON.generate(filter_log_data(request))}" if request.present?),
+        ("http_status=#{status}" if status),
+        ("slack_response=#{JSON.generate(filter_log_data(body))}" if body.present?)
+      ].compact.join(" ")
+    rescue => formatting_error
+      "#{details} response_format_error=#{formatting_error.class}: " \
+        "#{formatting_error.message.to_s.gsub(/\s+/, ' ').strip}"
+    end
+
+    def self.filter_log_data(data)
+      data = data.to_h if data.respond_to?(:to_h)
+      filters = Array(Rails.application.config.filter_parameters) + [
+        :access_token, :authorization, :cookie, :response_url, :signing_secret,
+        :trigger_id, :webhook_url
+      ]
+      redact_secret_strings(ActiveSupport::ParameterFilter.new(filters).filter(data))
+    end
+
+    def self.redact_secret_strings(data)
+      case data
+      when Hash
+        data.transform_values { |value| redact_secret_strings(value) }
+      when Array
+        data.map { |value| redact_secret_strings(value) }
+      when String
+        data
+          .gsub(/xox[a-z]-[A-Za-z0-9-]+/i, "[FILTERED]")
+          .gsub(%r{https://hooks\.slack\.com/services/[^\s"']+}i, "[FILTERED]")
+          .gsub(/\b(Bearer\s+)[^\s,"']+/i, '\1[FILTERED]')
+      else
+        data
+      end
+    end
+    private_class_method :redact_secret_strings
+
+    def self.report_channel_not_found(channel, error, operation:)
+      response = error.respond_to?(:response) ? error.response : nil
+      context = {
+        operation: operation,
+        channel: channel,
+        slack_response: filter_log_data(response)
+      }
+      message = "[SlackChannelNotFound] channel=#{channel.inspect} " \
+        "operation=#{operation.inspect} error=#{format_api_error(error)}"
+
+      Rails.logger.error(message)
+      Honeybadger.notify(error, context: context) if defined?(Honeybadger)
+
+      begin
+        send_slack_message(message, logs_channel)
+      rescue => logging_error
+        Rails.logger.error(
+          "[SlackChannelNotFound] unable to send failure to Slack logs channel, " \
+          "error=#{format_api_error(logging_error)}"
+        )
+      end
+    end
+
+    def self.invite_to_channel(channel, slack_id)
+      return true if Rails.env.test?
+      client.conversations_invite(channel: resolved_channel_id(channel), users: slack_id)
+      true
+    rescue Slack::Web::Api::Errors::AlreadyInChannel
+      true
+    rescue => error
+      log_channel_invite_failure(channel, slack_id, error)
+      raise
+    end
+
+    def self.channel_member?(channel, slack_id)
+      return false if Rails.env.test?
+
+      channel_id = resolved_channel_id(channel)
+      cursor = nil
+      loop do
+        response = client.conversations_members(channel: channel_id, limit: 1_000, cursor: cursor)
+        return true if Array(response.members).include?(slack_id)
+
+        cursor = response.response_metadata&.next_cursor.to_s
+        break if cursor.blank?
+      end
+      false
+    end
+    def self.kick_from_channel(channel, slack_id)
+      return if Rails.env.test?
+      client.conversations_kick(channel: resolved_channel_id(channel), user: slack_id)
+    rescue Slack::Web::Api::Errors::NotInChannel => e
+      raise "Bot not in channel #{channel} — cannot kick user #{slack_id}. Re-invite the bot to this channel."
+    end
+
+    # Slack's conversations.* APIs require an actual channel ID; our stored
+    # channel fields are names (e.g. "#band-saw-users"). Resolve to an ID
+    # here, skipping the lookup entirely when we were already given one.
+    # Falls back to the raw value on lookup failure, matching the prior
+    # invite_to_channel fallback (e.g. for a pre-resolved ID Slack rejects).
+    def self.resolved_channel_id(channel)
+      channel = safe_channel(channel)
+      return channel if Service::SlackChannelCache.channel_id?(channel)
+
+      find_channel_id(channel) || channel
+    end
+    def self.init_team_id
+      self.slack_team_id = ENV['SLACK_TEAM_ID'].presence
+      return slack_team_id if slack_team_id.present?
+      return if Rails.env.test?
+
+      response = client.team_info
+      self.slack_team_id = response.team.id if response.respond_to?(:team) && response.team.respond_to?(:id)
+      Rails.logger.warn("Slack team id could not be determined") if slack_team_id.blank?
+      slack_team_id
+    rescue => e
+      Rails.logger.warn("Slack team id could not be determined: #{e.message}")
+      nil
+    end
+    def self.team_id
+      slack_team_id.presence || init_team_id
+    end
+    def self.slack_user_url(slack_id)
+      id = team_id
+      return nil if id.blank? || slack_id.blank?
+      "slack://user?team=#{id}&id=#{slack_id}"
+    end
+    def self.slack_channel_url(channel_id)
+      id = team_id
+      return nil if id.blank? || channel_id.blank?
+      "slack://channel?team=#{id}&id=#{channel_id}"
+    end
     def invite_to_slack(email, lastname, firstname)
-      # Call with self since this is the instance method
       ::Service::SlackConnector.invite_to_slack(email, lastname, firstname)
     end
 
-    def self.invite_to_slack(email, lastname, firstname)
-      if ::Util.is_prod?
-        client.users_admin_invite(
-          email: email,
-          first_name: firstname,
-          last_name: lastname
-        )
-      end
+    def self.slack_invites_enabled?
+      ENV['SLACK_INVITES_ENABLED'] == 'true' && ENV['SLACK_ADMIN_TOKEN'].present?
     end
 
+    def self.invite_to_slack(email, lastname, firstname)
+      unless slack_invites_enabled?
+        raise Error::NotAllowed.new('Slack invites are not enabled in this environment')
+      end
+
+      slack_client = admin_client("users.admin.invite")
+      if slack_client.nil?
+        raise Error::NotAllowed.new(
+          "SLACK_ADMIN_TOKEN is required to invite Slack users"
+        )
+      end
+
+      arguments = {
+        email: email,
+        first_name: firstname,
+        last_name: lastname
+      }
+
+      if ENV['CHANNEL_NEW_SIGNUPS'].present?
+        channel_id = find_channel_id(ENV['CHANNEL_NEW_SIGNUPS'])
+        if channel_id.blank?
+          raise Error::NotAllowed.new(
+            "Slack signup channel #{ENV['CHANNEL_NEW_SIGNUPS'].inspect} could not be found"
+          )
+        end
+        arguments[:channels] = channel_id
+        arguments[:ultra_restricted] = true
+      end
+
+      slack_client.users_admin_invite(**arguments)
+    end
+
+    def self.new_signup_invite_mode
+      ENV['CHANNEL_NEW_SIGNUPS'].present? ? 'single_channel_guest' : 'full_member'
+    end
+
+    # users.admin.setRegular is part of the same legacy, undocumented API
+    # family as the existing invite/deactivation calls and is not exposed as
+    # a generated helper by slack-ruby-client.
+    def self.promote_to_regular(slack_id)
+      slack_client = admin_client("users.admin.setRegular")
+      if slack_client.nil?
+        raise Error::NotAllowed.new(
+          "SLACK_ADMIN_TOKEN is required to promote Slack users"
+        )
+      end
+
+      slack_client.post('users.admin.setRegular', user: slack_id)
+    end
+
+    def self.team_billable_info(user:)
+      slack_client = admin_client("team.billableInfo")
+      return if slack_client.nil?
+
+      slack_client.team_billableInfo(user: user)
+    end
+
+    # ── Channel helpers ──────────────────────────────────────────────────────
+    # All channels read from SystemConfig first, with hardcoded fallback.
+    # Configure channel names (without #) in Admin → Settings → Slack.
+
     def self.treasurer_channel
-      "treasurer"
+      SystemConfig.get('slack_channel_treasurer') || 'treasurer'
     end
 
     def self.members_relations_channel
-      "members_relations"
+      SystemConfig.get('slack_channel_admin').presence || 'members_relations'
+    end
+
+    def self.resource_managers_channel
+      SystemConfig.get('slack_channel_rm').presence || 'resource_managers'
     end
 
     def self.logs_channel
-      "interface-logs"
+      SystemConfig.get('slack_channel_logs') || 'interface-logs'
     end
+
+    def self.admin_channel
+      members_relations_channel
+    end
+
+    def self.new_members_channel
+      SystemConfig.get('slack_channel_new_members') || 'new_members'
+    end
+
+    def self.api_token_present?
+      ENV['SLACK_BOT_TOKEN'].present? || ENV['SLACK_ADMIN_TOKEN'].present?
+    end
+
+    def self.admin_token_present?
+      ENV['SLACK_ADMIN_TOKEN'].present?
+    end
+
+    # Ordinary calls prefer the least-privileged bot token. The historical
+    # admin token remains the fallback when no separate bot token is present.
+    def self.client
+      token = ENV['SLACK_BOT_TOKEN'].presence || ENV['SLACK_ADMIN_TOKEN'].presence
+      Slack::Web::Client.new(token: token)
+    end
+
+    # Admin-only calls must never fall back to the bot token.
+    def self.admin_client(operation)
+      token = ENV['SLACK_ADMIN_TOKEN'].presence
+      return Slack::Web::Client.new(token: token) if token
+
+      message = "[SlackAdminTokenRequired] operation=#{operation} " \
+        "SLACK_ADMIN_TOKEN is required; SLACK_BOT_TOKEN cannot authorize this API call"
+      $stderr.puts(message)
+      Rails.logger.error(message)
+      if defined?(Honeybadger)
+        Honeybadger.notify(
+          "Slack admin token required",
+          context: {
+            operation: operation,
+            slack_bot_token_present: ENV['SLACK_BOT_TOKEN'].present?
+          }
+        )
+      end
+      nil
+    end
+
+    def self.log_channel_invite_failure(channel, slack_id, error)
+      message = "[SlackChannelInviteFailed] channel=#{channel.inspect} slack_id=#{slack_id.inspect} " \
+        "error=#{format_api_error(error)}"
+      Rails.logger.error(message)
+
+      begin
+        send_slack_message(message, logs_channel)
+      rescue => logging_error
+        Rails.logger.error(
+          "[SlackChannelInviteFailed] unable to send failure to Slack logs channel, " \
+          "error=#{format_api_error(logging_error)}"
+        )
+      end
+    end
+    private_class_method :log_channel_invite_failure
 
     private
-    def self.safe_channel(channel)
-      ::Util.is_prod? ? channel : "test_channel"
-    end
 
-    def self.client
-      Slack::Web::Client.new(token: ENV['SLACK_ADMIN_TOKEN'])
+    def self.safe_channel(channel)
+      # If we are anything but production, redirect whatever channel to this fixed channel.
+      ENV['SLACK_ENV'] == 'production' ? channel : 'test_channel'
     end
 
     def self.format_slack_messages(messages, channel)
-      messages = messages.map { |m| "#{channel}| #{m}" } unless ::Util.is_prod?
-      msg_string = messages.join(" \n ");
+      messages = messages.map { |m| "#{channel}| #{m}" } unless ENV['SLACK_ENV'] == 'production'
+      messages.join(" \n ")
     end
-
     def self.request_caller_id(caller_method)
       "#{Current.request_id}.#{caller_method}"
     end

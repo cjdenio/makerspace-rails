@@ -83,4 +83,43 @@ describe 'Billing::Subscriptions API', type: :request do
       end
     end
   end
+
+  # The existing '200' spec above stubs get_subscriptions with `anything`,
+  # which never verifies what query was actually constructed — exactly why
+  # the bug this covers went unnoticed. construct_query is private, so it's
+  # exercised directly here via #send rather than through a full request,
+  # using a recording double in place of Braintree's real search builder.
+  describe '#construct_query' do
+    let(:controller) { Admin::Billing::SubscriptionsController.new }
+
+    it 'narrows results to the matching member when search matches a Member' do
+      target = create(:member, subscription_id: 'sub_target_123')
+      allow(controller).to receive(:subscription_query_params)
+        .and_return({ search: 'sub_target_123' })
+
+      search = double('search')
+      ids    = double('ids')
+      allow(search).to receive(:ids).and_return(ids)
+      expect(ids).to receive(:in).with(['sub_target_123'])
+
+      controller.send(:construct_query).call(search)
+    end
+
+    it 'does not silently return an unfiltered query when the initial Member lookup is empty' do
+      # Regression for the ||= bug: Mongoid::Criteria is never nil even when
+      # it matches zero records, so `resources ||= Rental.where(...)` could
+      # never reassign and the search filter was silently dropped entirely,
+      # returning every subscription instead of narrowing to a match.
+      rental = create(:rental, subscription_id: 'sub_rental_456')
+      allow(controller).to receive(:subscription_query_params)
+        .and_return({ search: 'sub_rental_456' })
+
+      search = double('search')
+      ids    = double('ids')
+      allow(search).to receive(:ids).and_return(ids)
+      expect(ids).to receive(:in).with(['sub_rental_456'])
+
+      controller.send(:construct_query).call(search)
+    end
+  end
 end

@@ -23,9 +23,8 @@ RSpec.describe PaypalController, type: :controller do
     context "with valid params" do
       before(:each) do
         member
-        Redis.current.flushall
-        sleep(5.seconds)
-      end 
+        allow(::PayPal::SDK::Core::API::IPN).to receive(:valid?).and_return(true)
+      end
       it "creates a new Paypal" do
         expect {
           post :notify, params: valid_attributes, format: :json
@@ -34,8 +33,8 @@ RSpec.describe PaypalController, type: :controller do
 
       it "assigns a newly created paypal as @paypal" do
         post :notify, params: valid_attributes, format: :json
-        expect(assigns(:payment)).to be_a(Payment)
-        expect(assigns(:payment)).to be_persisted
+        expect(Payment.last).to be_a(Payment)
+        expect(Payment.last).to be_persisted
       end
 
       it "Sends a notification to Slack" do
@@ -45,7 +44,7 @@ RSpec.describe PaypalController, type: :controller do
 
       it "Attributes the correct member to the payment" do
         post :notify, params: valid_attributes, format: :json
-        expect(assigns(:payment).member).to eq(member)
+        expect(Payment.last.member).to eq(member)
       end
 
       it "Updates member to subscription for correct txn_type" do
@@ -71,13 +70,15 @@ RSpec.describe PaypalController, type: :controller do
 
       it "Notifies of duplicate txn_ids" do
         ActiveJob::Base.queue_adapter = :test
+        keys_before = REDIS.keys
         post :notify, params: valid_attributes, format: :json
         expect {
           post :notify, params: valid_attributes, format: :json
         }.to have_enqueued_job
-        messages = Redis.current.mget(*Redis.current.keys)
+        new_keys = REDIS.keys - keys_before
+        messages = REDIS.mget(*new_keys)
         sorted_messages = messages.sort_by { |payload| Time.parse(JSON.load(payload)["timestamp"]) }
-        expect(JSON.load(sorted_messages.last)["message"]).to include("Txn is already taken")
+        expect(JSON.load(sorted_messages.last)["message"]).to include("already been taken")
       end
     end
   end

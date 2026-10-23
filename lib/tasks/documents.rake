@@ -1,5 +1,4 @@
 require 'google/apis/drive_v3'
-require_relative '../service/google_drive'
 
 namespace :documents do
   desc "Task to download Member Contract and Code of Conduct from GDrive and save to HTML"

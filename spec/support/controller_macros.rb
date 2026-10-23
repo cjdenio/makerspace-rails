@@ -4,6 +4,7 @@ module ControllerMacros
       @request.env["devise.mapping"] = Devise.mappings[:member]
     end
   end
+
   def login_admin
     before(:each) do
       @request.env["devise.mapping"] = Devise.mappings[:member]
@@ -12,11 +13,19 @@ module ControllerMacros
     end
   end
 
-  def login_user
+  def login_resource_manager
     before(:each) do
       @request.env["devise.mapping"] = Devise.mappings[:member]
-      user = create(:member)
+      user = create(:member, :resource_manager)
       sign_in user
+    end
+  end
+
+  def login_user
+    let(:current_user) { create(:member) }
+    before(:each) do
+      @request.env["devise.mapping"] = Devise.mappings[:member]
+      sign_in current_user
     end
   end
 end

@@ -1,0 +1,33 @@
+diff --git a/digital-makerspace/slack/reservation-checkout-expiration.md b/digital-makerspace/slack/reservation-checkout-expiration.md
+new file mode 100644
+--- /dev/null
++++ b/digital-makerspace/slack/reservation-checkout-expiration.md
+@@ -0,0 +1,28 @@
++---
++title: Reservation checkout expiration in Slack
++description: Choosing reservation times covered by your checkouts
++published: true
++date: 2026-10-20T00:00:00.000Z
++tags: portal, slack, reservations
++editor: markdown
++dateCreated: 2026-10-20T00:00:00.000Z
++---
++
++# Reservation checkout expiration in Slack
++
++In `/reserve`, required checkouts must cover the entire reservation, through
++the displayed calculated end. Changing Date, Start time, or Duration refreshes
++the available choices and warning.
++
++Duration choices stop when a required checkout expires. A checkout remains valid
++through its displayed Eastern calendar date, so a reservation may end at midnight
++at the start of the next day. Whole-day bookings follow local calendar days.
++
++If a selected duration is too long, it is reduced to the greatest valid choice.
++If no duration works, the form shows **Review selection** and names the required
++checkout. Choose an earlier date or start time, change the resources, or request
++checkout renewal in the Member Portal. Review the calculated end before submitting.
++
++Tools and groups you cannot reserve through the selected end are hidden unless
++already selected. A selected resource marked **(checkout required)** remains
++visible so you can correct it. Shop and group prerequisites also apply.

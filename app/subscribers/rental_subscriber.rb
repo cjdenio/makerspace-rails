@@ -16,7 +16,7 @@ module RentalSubscriber
           begin 
             ::BraintreeService::Subscription.cancel(connect_gateway(), subscription_id)
           rescue => err
-            enque_message("Error cancelling #{event[:model].member.fullname}'s rental subscription for #{event[:model].number}. Err: #{err}")
+            ::Service::SlackConnector.send_slack_message("Error cancelling #{event[:model].member.fullname}'s rental subscription for #{event[:model].number}. Err: #{err}")
           end
         end
       end

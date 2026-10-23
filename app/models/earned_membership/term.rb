@@ -4,7 +4,7 @@ class EarnedMembership::Term
   belongs_to :requirement, class_name: 'EarnedMembership::Requirement'
   has_and_belongs_to_many :reports, class_name: 'EarnedMembership::Report'
 
-  field :start_date, type: Time, default: Time.now
+  field :start_date, type: Time, default: -> { Time.now }
   field :current_count, type: Integer, default: 0
   field :satisfied, type: Boolean, default: false
 

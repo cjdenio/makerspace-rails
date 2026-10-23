@@ -3,6 +3,8 @@ class InvoiceOption
   include Mongoid::Search
   include ActiveModel::Serializers::JSON
 
+  PROMOTION_TIME_ZONE = "America/New_York".freeze
+
   ## Transaction Information
   # User friendly name for invoice displayed on receipt
   field :name, type: String
@@ -33,6 +35,27 @@ class InvoiceOption
 
   def self.search(searchTerms, criteria = Mongoid::Criteria.new(InvoiceOption))
     criteria.full_text_search(searchTerms)
+  end
+
+  def self.signup_eligible(at: Time.current)
+    local_date = at.in_time_zone(PROMOTION_TIME_ZONE).to_date
+    promotion_cutoff = Time.utc(local_date.year, local_date.month, local_date.day)
+
+    # A blank plan_id means a one-time, non-recurring charge -- not "not
+    # publicly purchasable". Invoice#submit_for_settlement already treats a
+    # nil plan_id as a first-class case (it just skips building next month's
+    # invoice), so a real one-time membership option like "One Month
+    # Membership" belongs here alongside recurring ones.
+    where(disabled: false, resource_class: "member")
+      .any_of(
+        { promotion_end_date: nil },
+        { :promotion_end_date.gte => promotion_cutoff }
+      )
+  end
+
+  def promotion_active?(at: Time.current)
+    promotion_end_date.present? &&
+      promotion_end_date.to_date >= at.in_time_zone(PROMOTION_TIME_ZONE).to_date
   end
 
   def build_invoice(member_id, due_date, resource_id, discount = nil)

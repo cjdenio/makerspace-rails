@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manchester Makerspace — Volunteer Bounties</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #0d0d0d;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #e85d04;
+      padding-bottom: 1rem;
+    }
+
+    header h1 { font-size: 2rem; font-weight: 700; color: #e85d04; letter-spacing: 0.04em; }
+    header .subtitle { font-size: 1rem; color: #aaa; margin-top: 0.35rem; }
+    header .subtitle code {
+      background: #2a2a2a;
+      color: #e85d04;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    #last-updated { font-size: 0.8rem; color: #666; text-align: right; flex-shrink: 0; }
+
+    #task-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .task-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    /* Left-border colour by task type */
+    .task-card.type-available  { border-left: 4px solid #e85d04; }
+    .task-card.type-reusable   { border-left: 4px solid #2e7d32; }
+    .task-card.type-repeatable { border-left: 4px solid #1565c0; }
+    .task-card.type-recurring  { border-left: 4px solid #6a1b9a; }
+
+    .task-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+    }
+
+    .task-number {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #e85d04;
+      background: rgba(232, 93, 4, 0.15);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .task-title { font-size: 1.1rem; font-weight: 600; color: #ffffff; }
+    .task-description { font-size: 0.9rem; color: #ccc; line-height: 1.5; flex-grow: 1; }
+
+    /* Type badge shown below description */
+    .task-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      width: fit-content;
+    }
+    .task-type-badge.type-reusable   { background: rgba(46,125,50,0.2);   color: #66bb6a; }
+    .task-type-badge.type-repeatable { background: rgba(21,101,192,0.2);  color: #64b5f6; }
+    .task-type-badge.type-recurring  { background: rgba(106,27,154,0.2);  color: #ce93d8; }
+
+    .task-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+    }
+
+    .task-credit {
+      background: #e85d04;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+    }
+
+    .task-shop { font-size: 0.8rem; color: #888; }
+
+    #empty-state { display: none; text-align: center; color: #555; font-size: 1.25rem; margin-top: 6rem; }
+    #error-state { display: none; text-align: center; color: #c62828; font-size: 1rem; margin-top: 4rem; }
+
+    /* Legend */
+    #legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.8rem;
+      color: #888;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+    .legend-swatch {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .swatch-available  { background: #e85d04; }
+    .swatch-reusable   { background: #2e7d32; }
+    .swatch-repeatable { background: #1565c0; }
+    .swatch-recurring  { background: #6a1b9a; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid #555;
+      border-top-color: #e85d04;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Volunteer Bounties</h1>
+      <div class="subtitle">
+        Claim a task and help out around the space! Use <code>/volunteer claim &lt;task#&gt;</code> in Slack.
+      </div>
+    </div>
+    <div id="last-updated">Loading<span class="spinner"></span></div>
+  </header>
+
+  <div id="legend">
+    <span class="legend-item"><span class="legend-swatch swatch-available"></span>One-time</span>
+    <span class="legend-item"><span class="legend-swatch swatch-reusable"></span>Reusable — any member, once each</span>
+    <span class="legend-item"><span class="legend-swatch swatch-repeatable"></span>Repeatable — claim as many times as you like</span>
+    <span class="legend-item"><span class="legend-swatch swatch-recurring"></span>Recurring — resets on a schedule</span>
+  </div>
+
+  <div id="task-grid"></div>
+  <div id="empty-state">No bounty tasks available right now. Check back soon!</div>
+  <div id="error-state">Unable to load tasks. Will retry shortly.</div>
+
+  <script>
+    const urlParams  = new URLSearchParams(window.location.search);
+    const token      = urlParams.get('token') || '';
+    const jsonParams = new URLSearchParams();
+    if (token) jsonParams.set('token', token);
+    if (urlParams.get('shop')) jsonParams.set('shop', urlParams.get('shop'));
+    const jsonUrl    = '/volunteer/bounties.json' + (jsonParams.toString() ? '?' + jsonParams.toString() : '');
+    const REFRESH_MS = 30000;
+
+    const grid        = document.getElementById('task-grid');
+    const emptyState  = document.getElementById('empty-state');
+    const errorState  = document.getElementById('error-state');
+    const lastUpdated = document.getElementById('last-updated');
+
+    const CLAIMABLE_STATUSES = ['available', 'reusable', 'repeatable', 'recurring'];
+
+    function creditLabel(value) {
+      const n = parseFloat(value);
+      return n + ' ' + (n === 1 ? 'credit' : 'credits');
+    }
+
+    function typeBadgeHtml(task) {
+      switch (task.status) {
+        case 'reusable':
+          return '<span class="task-type-badge type-reusable">↩ Reusable</span>';
+        case 'repeatable':
+          return '<span class="task-type-badge type-repeatable">∞ Repeatable</span>';
+        case 'recurring':
+          const days = task.days;
+          const label = days ? 'Repeats every ' + days + ' day' + (days !== 1 ? 's' : '') : 'Recurring';
+          return '<span class="task-type-badge type-recurring">↻ ' + escapeHtml(label) + '</span>';
+        default:
+          return '';
+      }
+    }
+
+    function renderTasks(tasks) {
+      // The server already filters to claimable tasks via the claimable scope,
+      // but guard here too in case the endpoint is called with different params.
+      const claimable = tasks.filter(t => CLAIMABLE_STATUSES.includes(t.status));
+
+      grid.innerHTML = '';
+      emptyState.style.display = claimable.length === 0 ? 'block' : 'none';
+      errorState.style.display = 'none';
+
+      claimable.forEach(task => {
+        const card    = document.createElement('div');
+        const typeClass = 'type-' + (task.status || 'available');
+        card.className  = 'task-card ' + typeClass;
+
+        const taskNum = task.task_number ? '#' + task.task_number : '';
+        const badge   = typeBadgeHtml(task);
+
+        card.innerHTML = `
+          <div class="task-header">
+            ${taskNum ? '<span class="task-number">' + escapeHtml(taskNum) + '</span>' : ''}
+            <div class="task-title">${escapeHtml(task.title)}</div>
+          </div>
+          <div class="task-description">${escapeHtml(task.description)}</div>
+          ${badge}
+          <div class="task-footer">
+            <span class="task-credit">${creditLabel(task.credit_value)}</span>
+            ${task.shop_name ? '<span class="task-shop">' + escapeHtml(task.shop_name) + '</span>' : ''}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      const now = new Date();
+      lastUpdated.textContent = 'Updated ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function loadTasks() {
+      fetch(jsonUrl)
+        .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+        .then(renderTasks)
+        .catch(() => {
+          errorState.style.display = 'block';
+          lastUpdated.textContent  = 'Failed to load — retrying...';
+        });
+    }
+
+    loadTasks();
+    setInterval(loadTasks, REFRESH_MS);
+  </script>
+</body>
+</html>

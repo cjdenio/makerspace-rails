@@ -15,7 +15,7 @@ RSpec.describe Permission, type: :model do
         create(:permission, name: :foo, enabled: true)
         create(:permission, name: :baz, enabled: true)
         create(:permission, name: :foo)
-        expect(Permission.list_permissions).to contain_exactly(:foo, :bar, :baz)
+        expect(Permission.list_permissions).to contain_exactly('foo', 'bar', 'baz')
       end
     end
 end

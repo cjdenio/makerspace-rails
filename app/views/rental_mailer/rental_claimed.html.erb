@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><body>
+<h2>Rental Claimed — Payment Required</h2>
+<p>Hi <%= @member.firstname %>,</p>
+<p>You have successfully claimed rental <strong><%= @rental.number %></strong>.</p>
+<p style="color: #c0392b; font-weight: bold;">⚠ Your rental is not valid until payment has been received.</p>
+<p>An invoice has been generated on your account. Please log in and go to your <strong>Invoices</strong> tab to pay now:</p>
+<p><a href="<%= @profile_url %>"><%= @profile_url %></a></p>
+<p>If you have any questions please contact us at contact@manchestermakerspace.org.</p>
+<p>— Manchester Makerspace</p>
+</body></html>

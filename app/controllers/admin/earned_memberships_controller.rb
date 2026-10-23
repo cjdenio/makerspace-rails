@@ -1,6 +1,6 @@
 class Admin::EarnedMembershipsController < AdminController
   include FastQuery::MongoidQuery
-  before_action :set_membership, only: [:update, :show]
+  before_action :set_membership, only: [:update, :show, :suspend, :reactivate]
 
   def index
     memberships = EarnedMembership.all
@@ -20,6 +20,22 @@ class Admin::EarnedMembershipsController < AdminController
   def update
     @membership.update!(update_params)
     @membership.reload
+    render json: @membership, adapter: :attributes and return
+  end
+
+  # POST /api/admin/earned_memberships/:id/suspend
+  # Deactivates without deleting -- history (requirements, reports) stays intact.
+  def suspend
+    @membership.suspend!(current_member)
+    render json: @membership, adapter: :attributes and return
+  end
+
+  # POST /api/admin/earned_memberships/:id/reactivate
+  # Rejected (422, via the global Mongoid::Errors::Validations handler) if the
+  # member currently has a paid subscription -- see the model's
+  # existing_subscription validation.
+  def reactivate
+    @membership.reactivate!(current_member)
     render json: @membership, adapter: :attributes and return
   end
 

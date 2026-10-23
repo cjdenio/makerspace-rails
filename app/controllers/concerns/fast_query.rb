@@ -1,17 +1,25 @@
 module FastQuery
   extend ActiveSupport::Concern
-  @@items_per_page = 20
+  env_items_per_page = ENV["ITEMS_PER_PAGE"]
+  ITEMS_PER_PAGE = if env_items_per_page&.match?(/\A\d+\z/) && env_items_per_page.to_i > 1
+    env_items_per_page.to_i
+  else
+    50
+  end
 
   protected
   def query_params
     # page_num is deprecated
-    params.permit(:order_by, :order, :page_num, :search)
+    permitted = params.permit(:order_by, :orderBy, :order, :page_num, :pageNum, :search)
+    permitted[:order_by] ||= permitted[:orderBy]
+    permitted[:page_num] ||= permitted[:pageNum]
+    permitted
   end
 
   def render_with_total_items(current_query, render_options = nil)
     render_payload = { :json => current_query }
     render_payload = render_payload.merge(render_options) if render_options.is_a?(Hash)
-    response.set_header("total-items", current_query.count)
+    response.set_header("total-items", @total_items || current_query.count)
     render render_payload and return
   end
 
@@ -47,11 +55,41 @@ module FastQuery
       order = query_criteria[:order].nil? || query_criteria[:order].empty? ? :asc : query_criteria[:order].to_sym
 
       # Search if needed. Raises error if search doesnt exist on class
-      unless query_criteria[:search].nil? || query_criteria[:search].empty?
-        query = current_query.klass.search(query_criteria[:search], current_query)
+      result_query = if query_criteria[:search].nil? || query_criteria[:search].empty?
+        order_query(current_query, sort_by, order)
+      else
+        current_query.klass.search(query_criteria[:search], current_query)
+      end
+
+      @total_items = result_query.count
+      paginate_resource(result_query, query_criteria[:page_num])
+    end
+
+    def paginate_resource(current_query, page_num)
+      page = [page_num.to_i, 0].max
+      offset = page * ITEMS_PER_PAGE
+
+      if current_query.respond_to?(:skip) && current_query.respond_to?(:limit)
+        current_query.skip(offset).limit(ITEMS_PER_PAGE)
+      else
+        current_query.slice(offset, ITEMS_PER_PAGE) || []
+      end
+    end
+
+    def order_query(current_query, sort_by, order)
+      if current_query.klass == Member && sort_by == :expirationTime
+        sorted_members = current_query.to_a.sort_by { |member| member_expiration_sort_value(member) }
+        order == :desc ? sorted_members.reverse : sorted_members
       else
         current_query.order_by(sort_by => order)
       end
+    end
+
+    def member_expiration_sort_value(member)
+      return member.expirationTime if member.expirationTime.present?
+      return member.startDate.to_time.to_i * 1000 if member.startDate.present?
+
+      Float::INFINITY
     end
 
     def query_array_by_name(param, db_name)

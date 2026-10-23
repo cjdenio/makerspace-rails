@@ -8,7 +8,7 @@ class DefaultPermission
     ping_no_purchase: :ping_no_purchase,
   }
 
-  field :name, type: Symbol
+  field :name, type: String
   field :enabled, type: Boolean, default: false
 
   validates :name, presence: true

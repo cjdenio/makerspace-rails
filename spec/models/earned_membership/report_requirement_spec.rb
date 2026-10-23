@@ -1,7 +1,5 @@
 require 'rails_helper'
 
-#https://github.com/mongoid/mongoid-rspec
-
 RSpec.describe EarnedMembership::ReportRequirement, type: :model do
 
   describe "public methods" do
@@ -10,33 +8,51 @@ RSpec.describe EarnedMembership::ReportRequirement, type: :model do
   end
 
   describe "private methods" do
-    it "validates requirement exists" do
-      report = build(:report)
-      report_requirement = build(:report_requirement_with_term, requirement: nil, report: report)
-      expect(report_requirement.valid?).to be(false)
-      report.save
-      expect(report_requirement.persisted?).to be(false)
+    # build(:report) uses FactoryBot build strategy which also builds (not creates)
+    # the associated earned_membership. An unsaved EM has no requirements in the DB,
+    # so requirements_exist validation always fails. Fix: create the EM explicitly
+    # so it's persisted with requirements before building the report.
 
-      report_requirement.requirement = create(:requirement)
-      expect(report_requirement.valid?).to be(true)
+    it "validates requirement exists" do
+      em = create(:earned_membership)
+      requirement = create(:requirement)
+      report = build(:report, earned_membership: em, report_requirements: [
+        build(:report_requirement_with_term, requirement: nil)
+      ])
+      rr = report.report_requirements.first
+
+      expect(rr.valid?).to be(false)
       report.save
-      expect(report_requirement.persisted?).to be(true)
+      expect(report.persisted?).to be(false)
+
+      rr.requirement = requirement
+      rr.term        = requirement.current_term
+      report.save
+      expect(report.persisted?).to be(true)
+      expect(rr.persisted?).to be(true)
     end
 
     it "validates term exists" do
-      EarnedMembership::Report.skip_callback(:validation, :before, :apply_term)
-      report = build(:report)
-      requirement = create(:requirement, term_length: 1)
-      report_requirement = build(:report_requirement, report: report, requirement: requirement)
-      expect(report_requirement.valid?).to be(false)
-      report.save
-      expect(report_requirement.persisted?).to be(false)
+      begin
+        EarnedMembership::Report.skip_callback(:validation, :before, :apply_term)
+        em = create(:earned_membership)
+        requirement = create(:requirement, term_length: 1)
+        report = build(:report, earned_membership: em, report_requirements: [
+          build(:report_requirement, requirement: requirement)
+        ])
+        rr = report.report_requirements.first
 
-      report_requirement.term = create(:term, start_date: Time.now - 1.month)
-      expect(report_requirement.valid?).to be(true)
-      report.save
-      expect(report_requirement.persisted?).to be(true)
-      EarnedMembership::Report.set_callback(:validation, :before, :apply_term)
+        expect(rr.valid?).to be(false)
+        report.save
+        expect(report.persisted?).to be(false)
+
+        rr.term = requirement.current_term
+        report.save
+        expect(report.persisted?).to be(true)
+        expect(rr.persisted?).to be(true)
+      ensure
+        EarnedMembership::Report.set_callback(:validation, :before, :apply_term)
+      end
     end
   end
 end

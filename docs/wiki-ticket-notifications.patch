@@ -1,0 +1,40 @@
+diff --git a/digital-makerspace/slack/fix-ticket-notifications.md b/digital-makerspace/slack/fix-ticket-notifications.md
+new file mode 100644
+--- /dev/null
++++ b/digital-makerspace/slack/fix-ticket-notifications.md
+@@ -0,0 +1,21 @@
++---
++title: Fix ticket notifications in Slack
++description: Opening a ticket from a Slack direct message
++published: true
++date: 2026-10-20T00:00:00.000Z
++tags: portal, slack, repairs
++editor: markdown
++dateCreated: 2026-10-20T00:00:00.000Z
++---
++
++# Fix ticket notifications in Slack
++
++Messages about a specific report, such as **A report was opened**, show a
++clickable **Ticket #2** label. Select it to open that ticket in the Member Portal.
++
++Select **Open ticket in Slack** to open the ticket's private Slack view, just
++as if you had typed `/fix 2`. Replace 2 with your ticket's number when using
++the command. Available actions depend on your current ticket permissions;
++an old message does not grant access after those permissions change.
++
++Previously delivered messages keep their original format.
+diff --git a/digital-makerspace/admin/checkout-expiration-notices.md b/digital-makerspace/admin/checkout-expiration-notices.md
+--- a/digital-makerspace/admin/checkout-expiration-notices.md
++++ b/digital-makerspace/admin/checkout-expiration-notices.md
+@@ -33,3 +33,10 @@
+ message but its acknowledgment was lost, retry can duplicate that message.
+ Changing a checkout date starts a new notice cycle; assigning the same date does
+ not. Setting Never removes the checkout from future expiry notice runs.
++
++After scanning notices, the job queues a checkout roster canvas rebuild for
++each shop with newly expired checkouts, even when member notices cannot be sent.
++Canvas updates run asynchronously. Rerun Checkout Expiration Notices after an
++outage to retry unfinished rebuilds, including ones whose automatic retries ran
++out. Only successfully published rosters are skipped on later runs.
++The first run also repairs rosters previously marked complete at enqueue time.
